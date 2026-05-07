@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TurfBooking.Persistence.Context;
+using TurfBooking.Persistence.Interfaces;
+using TurfBooking.Persistence.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +14,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 var app = builder.Build();
 

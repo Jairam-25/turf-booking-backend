@@ -13,6 +13,7 @@
   <ItemGroup>
     <Folder Include="Geolocation\" />
     <Folder Include="Authentication\" />
+    <Folder Include="Interfaces\" />
     <Folder Include="Notifications\" />
     <Folder Include="Payments\" />
     <Folder Include="Services\" />
