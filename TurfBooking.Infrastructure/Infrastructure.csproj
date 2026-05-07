@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TurfBooking.Application\TurfBooking.Application.csproj" />
+    <ProjectReference Include="..\TurfBooking.Application\Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
