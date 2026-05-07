@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TurfBooking.Application\TurfBooking.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Geolocation\" />
+    <Folder Include="Authentication\" />
+    <Folder Include="Notifications\" />
+    <Folder Include="Payments\" />
+    <Folder Include="Services\" />
+  </ItemGroup>
+
+</Project>

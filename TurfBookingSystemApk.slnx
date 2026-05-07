@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="TurfBooking.API/TurfBooking.API.csproj" />
+  <Project Path="TurfBooking.Application/TurfBooking.Application.csproj" />
+  <Project Path="TurfBooking.Domain/TurfBooking.Domain.csproj" />
+  <Project Path="TurfBooking.Infrastructure/TurfBooking.Infrastructure.csproj" />
+  <Project Path="TurfBooking.Persistence/TurfBooking.Persistence.csproj" />
+</Solution>
