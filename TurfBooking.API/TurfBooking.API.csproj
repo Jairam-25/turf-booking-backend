@@ -16,9 +16,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TurfBooking.Application\TurfBooking.Application.csproj" />
-    <ProjectReference Include="..\TurfBooking.Infrastructure\TurfBooking.Infrastructure.csproj" />
-    <ProjectReference Include="..\TurfBooking.Persistence\TurfBooking.Persistence.csproj" />
+    <ProjectReference Include="..\TurfBooking.Application\Application.csproj" />
+    <ProjectReference Include="..\TurfBooking.Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\TurfBooking.Persistence\Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>
