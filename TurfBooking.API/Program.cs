@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using TurfBooking.Application.Interfaces;
+using TurfBooking.Persistence;
 using TurfBooking.Persistence.Context;
 using TurfBooking.Persistence.Interfaces;
 using TurfBooking.Persistence.Repositories;
@@ -16,7 +18,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-
+builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

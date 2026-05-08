@@ -24,9 +24,4 @@
     <ProjectReference Include="..\TurfBooking.Domain\Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Configurations\" />
-    <Folder Include="Migrations\" />
-  </ItemGroup>
-
 </Project>

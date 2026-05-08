@@ -10,5 +10,19 @@ public class ApplicationDbContext : DbContext
     {
     }
 
-    public DbSet<User> Users => Set<User>();
+    public DbSet<User> Users { get; set; }
+
+    public DbSet<Turf> Turfs { get; set; }
+
+    public DbSet<Slot> Slots { get; set; }
+
+    public DbSet<Booking> Bookings { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(
+            typeof(ApplicationDbContext).Assembly);
+
+        base.OnModelCreating(modelBuilder);
+    }
 }
