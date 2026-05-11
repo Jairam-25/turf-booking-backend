@@ -1,4 +1,4 @@
-﻿namespace TurfBooking.Domain.Entities;
+﻿namespace Domain.Entities;
 
 public class Turf
 {

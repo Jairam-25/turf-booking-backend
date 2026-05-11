@@ -1,4 +1,4 @@
-﻿using TurfBooking.Domain.Entities;
+﻿using Domain.Entities;
 
 namespace TurfBooking.Persistence.Interfaces;
 

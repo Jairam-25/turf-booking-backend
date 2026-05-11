@@ -5,15 +5,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using TurfBooking.Persistence.Context;
+using Persistence.Context;
 
 #nullable disable
 
 namespace Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260508133136_FluentApiConfiguration")]
-    partial class FluentApiConfiguration
+    [Migration("20260509175150_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Booking", b =>
+            modelBuilder.Entity("Domain.Entities.Booking", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -51,7 +51,7 @@ namespace Persistence.Migrations
                     b.ToTable("Bookings");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Slot", b =>
+            modelBuilder.Entity("Domain.Entities.Slot", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -80,7 +80,7 @@ namespace Persistence.Migrations
                     b.ToTable("Slots");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Turf", b =>
+            modelBuilder.Entity("Domain.Entities.Turf", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -106,7 +106,7 @@ namespace Persistence.Migrations
                     b.ToTable("Turfs");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.User", b =>
+            modelBuilder.Entity("Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -124,7 +124,7 @@ namespace Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("PasswordHash")
+                    b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -133,15 +133,15 @@ namespace Persistence.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Booking", b =>
+            modelBuilder.Entity("Domain.Entities.Booking", b =>
                 {
-                    b.HasOne("TurfBooking.Domain.Entities.Slot", "Slot")
+                    b.HasOne("Domain.Entities.Slot", "Slot")
                         .WithMany("Bookings")
                         .HasForeignKey("SlotId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TurfBooking.Domain.Entities.User", "User")
+                    b.HasOne("Domain.Entities.User", "User")
                         .WithMany("Bookings")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -152,9 +152,9 @@ namespace Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Slot", b =>
+            modelBuilder.Entity("Domain.Entities.Slot", b =>
                 {
-                    b.HasOne("TurfBooking.Domain.Entities.Turf", "Turf")
+                    b.HasOne("Domain.Entities.Turf", "Turf")
                         .WithMany("Slots")
                         .HasForeignKey("TurfId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -163,17 +163,17 @@ namespace Persistence.Migrations
                     b.Navigation("Turf");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Slot", b =>
+            modelBuilder.Entity("Domain.Entities.Slot", b =>
                 {
                     b.Navigation("Bookings");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Turf", b =>
+            modelBuilder.Entity("Domain.Entities.Turf", b =>
                 {
                     b.Navigation("Slots");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.User", b =>
+            modelBuilder.Entity("Domain.Entities.User", b =>
                 {
                     b.Navigation("Bookings");
                 });

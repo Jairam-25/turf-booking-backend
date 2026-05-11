@@ -1,11 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Application.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using TurfBooking.Application.Interfaces;
-using TurfBooking.Persistence.Context;
-using TurfBooking.Persistence.Repositories;
+using Persistence.Context;
+using Persistence.Repositories;
 
-namespace TurfBooking.Persistence;
+namespace Persistence;
 
 public static class DependencyInjection
 {
@@ -21,6 +21,7 @@ public static class DependencyInjection
                            typeof(GenericRepository<>));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 
         return services;
     }

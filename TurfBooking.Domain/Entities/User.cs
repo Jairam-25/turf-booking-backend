@@ -1,4 +1,4 @@
-﻿namespace TurfBooking.Domain.Entities;
+﻿namespace Domain.Entities;
 
 public class User
 {
@@ -8,9 +8,8 @@ public class User
 
     public string Email { get; set; } = string.Empty;
 
-    public string PasswordHash { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
 
-    // Navigation Property
     public ICollection<Booking> Bookings { get; set; }
-        = new List<Booking>();
+    = new List<Booking>();
 }
