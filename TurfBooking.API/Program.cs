@@ -1,3 +1,4 @@
+using Application.Common.Settings;
 using Application.Validators;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -37,6 +38,10 @@ builder.Services.AddPersistence(
     builder.Configuration);
 builder.Services.AddInfrastructure();
 
+//Configure Jwt Settings
+builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection("JwtSettings"));
+
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -49,6 +54,11 @@ builder.Services.AddCors(options =>
                   .AllowAnyMethod();
         });
 });
+
+var jwtSettings =
+    builder.Configuration
+        .GetSection("JwtSettings")
+        .Get<JwtSettings>();
 
 // JWT Authentication
 builder.Services
@@ -69,15 +79,15 @@ builder.Services
                 ValidateIssuerSigningKey = true,
 
                 ValidIssuer =
-                    builder.Configuration["Jwt:Issuer"],
+                    jwtSettings!.Issuer,
 
                 ValidAudience =
-                    builder.Configuration["Jwt:Audience"],
+                    jwtSettings.Audience,
 
                 IssuerSigningKey =
                     new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(
-                            builder.Configuration["Jwt:Key"]!))
+                            jwtSettings.Key))
             };
     });
 
