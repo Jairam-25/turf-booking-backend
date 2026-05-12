@@ -1,4 +1,5 @@
-﻿using Application.DTOs;
+﻿using Application.Common.Messages;
+using Application.DTOs;
 using Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -40,7 +41,7 @@ public class AuthController : ControllerBase
         if (result == null)
         {
             return Unauthorized(
-                "Invalid credentials");
+                AuthMessages.InvalidCredentials);
         }
 
         return Ok(result);
@@ -73,7 +74,7 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
-            Message = "Reset token generated",
+            Message = AuthMessages.ResetTokenGenerated,
             Token = result
         });
     }

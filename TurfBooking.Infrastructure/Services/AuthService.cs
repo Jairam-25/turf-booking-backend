@@ -1,28 +1,32 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
+﻿using Application.Common.Constants;
+using Application.Common.Messages;
+using Application.Common.Settings;
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Persistence.Context;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Infrastructure.Services;
 
 public class AuthService : IAuthService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IConfiguration _configuration;
+    private readonly JwtSettings _jwtSettings;
 
     public AuthService(
         ApplicationDbContext context,
-        IConfiguration configuration)
+        IOptions<JwtSettings> jwtSettings
+    )
     {
         _context = context;
-        _configuration = configuration;
+        _jwtSettings = jwtSettings.Value;
     }
 
     public async Task<string> RegisterAsync(
@@ -34,7 +38,7 @@ public class AuthService : IAuthService
 
         if (existingUser != null)
         {
-            throw new Exception("Email already exists");
+            throw new Exception(AuthMessages.EmailAlreadyExists);
         }
 
         var hashedPassword =
@@ -51,7 +55,7 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
-        return "User registered successfully";
+        return AuthMessages.RegisterSuccess;
     }
 
     public async Task<AuthResponseDto?> LoginAsync(
@@ -70,7 +74,7 @@ public class AuthService : IAuthService
             user.LockoutEnd > DateTime.UtcNow)
         {
             throw new Exception(
-                "You entered the wrong password more than 5 times. So account temporarily locked for 15 minutes.");
+                AuthMessages.LoginMaxAttempt);
         }
 
         var isPasswordValid =
@@ -82,12 +86,12 @@ public class AuthService : IAuthService
         {
             user.FailedLoginAttempts++;
 
-            if (user.FailedLoginAttempts >= 5)
+            if (user.FailedLoginAttempts >= AppConstants.MaxLoginAttempts)
             {
                 user.IsLocked = true;
 
                 user.LockoutEnd =
-                    DateTime.Now.AddMinutes(5);
+                    DateTime.Now.AddMinutes(AppConstants.LockoutMinutes);
             }
 
             await _context.SaveChangesAsync();
@@ -105,7 +109,7 @@ public class AuthService : IAuthService
         user.RefreshToken = refreshToken;
 
         user.RefreshTokenExpiryTime =
-            DateTime.UtcNow.AddDays(7);
+            DateTime.UtcNow.AddDays(AppConstants.RefreshTokenExpiryDays);
 
         await _context.SaveChangesAsync();
 
@@ -129,17 +133,17 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new Exception("User not found");
+            throw new Exception(AuthMessages.UserNotFound);
         }
 
         var resetToken =
             Convert.ToHexString(
-                RandomNumberGenerator.GetBytes(64));
+                RandomNumberGenerator.GetBytes(AppConstants.ByteNumber));
 
         user.PasswordResetToken = resetToken;
 
         user.ResetTokenExpires =
-            DateTime.UtcNow.AddMinutes(15);
+            DateTime.UtcNow.AddMinutes(AppConstants.LockoutMinutes);
 
         await _context.SaveChangesAsync();
 
@@ -158,12 +162,12 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new Exception("Invalid token");
+            throw new Exception(AuthMessages.InvalidToken);
         }
 
         if (user.ResetTokenExpires < DateTime.UtcNow)
         {
-            throw new Exception("Token expired");
+            throw new Exception(AuthMessages.TokenExpired);
         }
 
         var hashedPassword =
@@ -178,7 +182,7 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
-        return "Password reset successful";
+        return AuthMessages.PasswordResetSuccess;
     }
 
     public async Task<AuthResponseDto?> RefreshTokenAsync(
@@ -239,17 +243,17 @@ public class AuthService : IAuthService
 
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(
-                _configuration["Jwt:Key"]!));
+                _jwtSettings.Key));
 
         var creds = new SigningCredentials(
             key,
             SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"],
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(30),
+            expires: DateTime.UtcNow.AddMinutes(AppConstants.ExpiryMinutes),
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler()
@@ -258,7 +262,7 @@ public class AuthService : IAuthService
 
     private string GenerateRefreshToken()
     {
-        var randomNumber = new byte[64];
+        var randomNumber = new byte[AppConstants.ByteNumber];
 
         using var rng =
             RandomNumberGenerator.Create();
