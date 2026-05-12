@@ -24,7 +24,7 @@
                 await context.Response.WriteAsJsonAsync(
                     new
                     {
-                        message = ex.Message
+                        message = ex.ToString()
                     });
             }
         }
