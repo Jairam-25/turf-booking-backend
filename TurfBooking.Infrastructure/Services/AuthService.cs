@@ -19,22 +19,24 @@ public class AuthService : IAuthService
 {
     private readonly ApplicationDbContext _context;
     private readonly JwtSettings _jwtSettings;
+    private readonly IEmailService _emailService;
 
     public AuthService(
         ApplicationDbContext context,
-        IOptions<JwtSettings> jwtSettings
+        IOptions<JwtSettings> jwtSettings,
+        IEmailService emailService
     )
     {
         _context = context;
         _jwtSettings = jwtSettings.Value;
+        _emailService = emailService;
     }
 
-    public async Task<string> RegisterAsync(
-        RegisterRequestDto request)
+    public async Task<string> RegisterAsync(RegisterRequestDto request)
     {
         var existingUser = await _context.Users
-            .FirstOrDefaultAsync(x =>
-                x.Email == request.Email);
+        .FirstOrDefaultAsync(x =>
+            x.Email == request.Email);
 
         if (existingUser != null)
         {
@@ -48,6 +50,7 @@ public class AuthService : IAuthService
         {
             Name = request.Name,
             Email = request.Email,
+            PhoneNumber = request.PhoneNumber,
             Password = hashedPassword
         };
 
@@ -55,15 +58,23 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
+        // Sended mail after registeration on Registered mail I'd or mobile number.
+        await _emailService.SendWelcomeEmailAsync
+        (
+            user.Email,
+            user.Name
+        );
+
         return AuthMessages.RegisterSuccess;
     }
 
-    public async Task<AuthResponseDto?> LoginAsync(
-        LoginRequestDto request)
+    public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto request)
     {
         var user = await _context.Users
-            .FirstOrDefaultAsync(x =>
-                x.Email == request.Email);
+        .FirstOrDefaultAsync(x =>
+            x.Email == request.EmailOrPhone
+            ||
+            x.PhoneNumber == request.EmailOrPhone);
 
         if (user == null)
         {
@@ -113,10 +124,11 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
-        return new AuthResponseDto
+        return new LoginResponseDto
         {
             Name = user.Name,
             Email = user.Email,
+            Number = user.PhoneNumber,
             Role = user.Role,
             Token = token,
             RefreshToken = refreshToken
@@ -185,7 +197,7 @@ public class AuthService : IAuthService
         return AuthMessages.PasswordResetSuccess;
     }
 
-    public async Task<AuthResponseDto?> RefreshTokenAsync(
+    public async Task<LoginResponseDto?> RefreshTokenAsync(
         string refreshToken)
     {
         var user = await _context.Users
@@ -210,7 +222,7 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
-        return new AuthResponseDto
+        return new LoginResponseDto
         {
             Name = user.Name,
             Email = user.Email,

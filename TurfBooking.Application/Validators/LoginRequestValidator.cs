@@ -1,24 +1,45 @@
 ﻿using Application.DTOs;
 using FluentValidation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
-namespace Application.Validators
-{
-    public class LoginRequestValidator
+namespace Application.Validators;
+
+public class LoginRequestValidator
     : AbstractValidator<LoginRequestDto>
+{
+    public LoginRequestValidator()
     {
-        public LoginRequestValidator()
-        {
-            RuleFor(x => x.Email)
-                .NotEmpty()
-                .EmailAddress();
+        RuleFor(x => x.EmailOrPhone)
+            .NotEmpty()
+            .Must(BeValidEmailOrPhone)
+            .WithMessage(
+                "Enter valid email or phone number");
 
-            RuleFor(x => x.Password)
-                .NotEmpty();
+        RuleFor(x => x.Password)
+            .NotEmpty()
+            .MinimumLength(6);
+    }
+
+    private bool BeValidEmailOrPhone(
+        string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
         }
+
+        // Email validation
+        var isEmail =
+            Regex.IsMatch(
+                value,
+                @"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+
+        // Phone validation
+        var isPhone =
+            Regex.IsMatch(
+                value,
+                @"^[0-9]{10}$");
+
+        return isEmail || isPhone;
     }
 }

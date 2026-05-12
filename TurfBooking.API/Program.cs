@@ -55,6 +55,9 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+
 var jwtSettings =
     builder.Configuration
         .GetSection("JwtSettings")
