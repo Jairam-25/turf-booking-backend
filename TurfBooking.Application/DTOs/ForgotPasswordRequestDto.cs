@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 
 namespace Application.DTOs
 {
-    public class LoginRequestDto
+    public class ForgotPasswordRequestDto
     {
-        public string EmailOrPhone { get; set; } = string.Empty;
-
-        public string Password { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
     }
 }

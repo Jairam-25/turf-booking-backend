@@ -4,12 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Application.DTOs
+namespace Application.Common.Settings
 {
-    public class LoginRequestDto
+    public class EmailSettings
     {
-        public string EmailOrPhone { get; set; } = string.Empty;
-
+        public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
 }

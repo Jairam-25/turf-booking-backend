@@ -1,15 +1,23 @@
 ﻿using Application.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Interfaces
 {
+
     public interface IAuthService
     {
+        Task<string> RegisterAsync(
+            RegisterRequestDto request);
+
         Task<LoginResponseDto?> LoginAsync(
             LoginRequestDto request);
+
+        Task<LoginResponseDto?> RefreshTokenAsync(
+            string refreshToken);
+
+        Task<string> ForgotPasswordAsync(
+            ForgotPasswordRequestDto request);
+
+        Task<string> ResetPasswordAsync(
+            ResetPasswordRequestDto request);
     }
 }
