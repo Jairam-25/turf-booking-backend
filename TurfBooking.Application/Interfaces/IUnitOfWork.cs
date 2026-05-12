@@ -1,16 +1,14 @@
-﻿using TurfBooking.Domain.Entities;
+﻿using Domain.Entities;
 
-namespace TurfBooking.Application.Interfaces;
+namespace Application.Interfaces;
 
-public interface IUnitOfWork : IDisposable
+public interface IUnitOfWork
 {
     IGenericRepository<User> Users { get; }
 
-    IGenericRepository<Turf> Turfs { get; }
-
-    IGenericRepository<Slot> Slots { get; }
-
     IGenericRepository<Booking> Bookings { get; }
 
-    Task<int> SaveAsync();
+    IGenericRepository<Turf> Turfs { get; }
+
+    Task<int> SaveChangesAsync();
 }

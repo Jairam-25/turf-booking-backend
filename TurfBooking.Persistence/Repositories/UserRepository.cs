@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
-using TurfBooking.Domain.Entities;
-using TurfBooking.Persistence.Context;
+﻿using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Persistence.Context;
 using TurfBooking.Persistence.Interfaces;
 
-namespace TurfBooking.Persistence.Repositories;
+namespace Persistence.Repositories;
 
 public class UserRepository : IUserRepository
 {
@@ -26,4 +26,5 @@ public class UserRepository : IUserRepository
 
         await _context.SaveChangesAsync();
     }
+
 }

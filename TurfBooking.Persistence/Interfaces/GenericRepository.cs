@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Application.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Persistence.Context;
 using System.Linq.Expressions;
-using TurfBooking.Application.Interfaces;
-using TurfBooking.Persistence.Context;
 
-namespace TurfBooking.Persistence.Repositories;
+namespace Persistence.Repositories;
 
 public class GenericRepository<T> : IGenericRepository<T> where T : class
 {

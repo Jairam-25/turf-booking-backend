@@ -5,15 +5,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using TurfBooking.Persistence.Context;
+using Persistence.Context;
 
 #nullable disable
 
 namespace Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260508130812_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260511110829_UpdateTable")]
+    partial class UpdateTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Booking", b =>
+            modelBuilder.Entity("Domain.Entities.Booking", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -51,7 +51,7 @@ namespace Persistence.Migrations
                     b.ToTable("Bookings");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Slot", b =>
+            modelBuilder.Entity("Domain.Entities.Slot", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -63,7 +63,9 @@ namespace Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsBooked")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
@@ -78,7 +80,7 @@ namespace Persistence.Migrations
                     b.ToTable("Slots");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Turf", b =>
+            modelBuilder.Entity("Domain.Entities.Turf", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -88,11 +90,13 @@ namespace Persistence.Migrations
 
                     b.Property<string>("Location")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal>("PricePerHour")
                         .HasColumnType("decimal(18,2)");
@@ -102,7 +106,7 @@ namespace Persistence.Migrations
                     b.ToTable("Turfs");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.User", b =>
+            modelBuilder.Entity("Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -110,15 +114,42 @@ namespace Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("FailedLoginAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LockoutEnd")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PasswordHash")
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiryTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -127,18 +158,18 @@ namespace Persistence.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Booking", b =>
+            modelBuilder.Entity("Domain.Entities.Booking", b =>
                 {
-                    b.HasOne("TurfBooking.Domain.Entities.Slot", "Slot")
+                    b.HasOne("Domain.Entities.Slot", "Slot")
                         .WithMany("Bookings")
                         .HasForeignKey("SlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TurfBooking.Domain.Entities.User", "User")
+                    b.HasOne("Domain.Entities.User", "User")
                         .WithMany("Bookings")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Slot");
@@ -146,9 +177,9 @@ namespace Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Slot", b =>
+            modelBuilder.Entity("Domain.Entities.Slot", b =>
                 {
-                    b.HasOne("TurfBooking.Domain.Entities.Turf", "Turf")
+                    b.HasOne("Domain.Entities.Turf", "Turf")
                         .WithMany("Slots")
                         .HasForeignKey("TurfId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -157,17 +188,17 @@ namespace Persistence.Migrations
                     b.Navigation("Turf");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Slot", b =>
+            modelBuilder.Entity("Domain.Entities.Slot", b =>
                 {
                     b.Navigation("Bookings");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.Turf", b =>
+            modelBuilder.Entity("Domain.Entities.Turf", b =>
                 {
                     b.Navigation("Slots");
                 });
 
-            modelBuilder.Entity("TurfBooking.Domain.Entities.User", b =>
+            modelBuilder.Entity("Domain.Entities.User", b =>
                 {
                     b.Navigation("Bookings");
                 });

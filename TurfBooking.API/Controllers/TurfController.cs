@@ -1,8 +1,8 @@
+using Application.Interfaces;
+using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using TurfBooking.Application.Interfaces;
-using TurfBooking.Domain.Entities;
 
-namespace TurfBooking.API.Controllers;
+namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -28,7 +28,7 @@ public class TurfController : ControllerBase
     {
         await _unitOfWork.Turfs.AddAsync(turf);
 
-        await _unitOfWork.SaveAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         return Ok(turf);
     }
