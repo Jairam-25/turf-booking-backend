@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using TurfBooking.Domain.Entities;
 
-namespace TurfBooking.Persistence.Configurations;
+namespace Persistence.Configurations;
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
@@ -18,7 +18,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(150);
 
-        builder.Property(u => u.PasswordHash)
+        builder.Property(u => u.Password)
             .IsRequired();
     }
 }

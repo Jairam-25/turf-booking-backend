@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using TurfBooking.Domain.Entities;
+﻿using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
-namespace TurfBooking.Persistence.Context;
+namespace Persistence.Context;
 
 public class ApplicationDbContext : DbContext
 {

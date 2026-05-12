@@ -18,7 +18,6 @@
   <ItemGroup>
     <ProjectReference Include="..\TurfBooking.Application\Application.csproj" />
     <ProjectReference Include="..\TurfBooking.Infrastructure\Infrastructure.csproj" />
-    <ProjectReference Include="..\TurfBooking.Persistence\Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TurfBooking.Application\Application.csproj" />
+    <ProjectReference Include="..\TurfBooking.Persistence\Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,7 +17,6 @@
     <Folder Include="Interfaces\" />
     <Folder Include="Notifications\" />
     <Folder Include="Payments\" />
-    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

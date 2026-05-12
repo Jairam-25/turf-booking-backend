@@ -1,21 +1,18 @@
-﻿using TurfBooking.Application.Interfaces;
-using TurfBooking.Domain.Entities;
-using TurfBooking.Persistence.Context;
+﻿using Application.Interfaces;
+using Domain.Entities;
+using Persistence.Context;
 
-namespace TurfBooking.Persistence.Repositories;
+namespace Persistence.Repositories;
 
 public class UnitOfWork : IUnitOfWork
 {
     private readonly ApplicationDbContext _context;
 
-
     public IGenericRepository<User> Users { get; }
 
-    public IGenericRepository<Turf> Turfs { get; }
-
-    public IGenericRepository<Slot> Slots { get; }
-
     public IGenericRepository<Booking> Bookings { get; }
+
+    public IGenericRepository<Turf> Turfs { get; }
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -23,20 +20,13 @@ public class UnitOfWork : IUnitOfWork
 
         Users = new GenericRepository<User>(_context);
 
-        Turfs = new GenericRepository<Turf>(_context);
-
-        Slots = new GenericRepository<Slot>(_context);
-
         Bookings = new GenericRepository<Booking>(_context);
+
+        Turfs = new GenericRepository<Turf>(_context);
     }
 
-    public async Task<int> SaveAsync()
+    public async Task<int> SaveChangesAsync()
     {
         return await _context.SaveChangesAsync();
-    }
-
-    public void Dispose()
-    {
-        _context.Dispose();
     }
 }
