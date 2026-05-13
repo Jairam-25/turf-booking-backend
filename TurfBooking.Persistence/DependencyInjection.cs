@@ -21,6 +21,7 @@ public static class DependencyInjection
                            typeof(GenericRepository<>));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
 
         return services;
