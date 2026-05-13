@@ -8,10 +8,10 @@ namespace Application.Interfaces
         Task<string> RegisterAsync(
             RegisterRequestDto request);
 
-        Task<AuthResponseDto?> LoginAsync(
+        Task<LoginResponseDto?> LoginAsync(
             LoginRequestDto request);
 
-        Task<AuthResponseDto?> RefreshTokenAsync(
+        Task<LoginResponseDto?> RefreshTokenAsync(
             string refreshToken);
 
         Task<string> ForgotPasswordAsync(
