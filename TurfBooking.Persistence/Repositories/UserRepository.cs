@@ -1,30 +1,34 @@
-﻿using Domain.Entities;
+﻿using Application.DTOs;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
-using TurfBooking.Persistence.Interfaces;
 
-namespace Persistence.Repositories;
-
-public class UserRepository : IUserRepository
+public class UserRepository
+    : GenericRepository<User>, IUserRepository
 {
-    private readonly ApplicationDbContext _context;
-
     public UserRepository(ApplicationDbContext context)
+        : base(context)
     {
-        _context = context;
     }
 
-    public async Task<User?> GetByEmailAsync(string email)
+    public async Task<User?> GetByEmailAsync(LoginRequestDto req)
     {
         return await _context.Users
-            .FirstOrDefaultAsync(x => x.Email == email);
+            .FirstOrDefaultAsync(x => x.Email == req.EmailOrPhone || x.PhoneNumber == req.EmailOrPhone);
     }
-
-    public async Task AddAsync(User user)
+    public async Task<User?> GetByPasswordResetTokenAsync(
+    string token)
     {
-        await _context.Users.AddAsync(user);
-
-        await _context.SaveChangesAsync();
+        return await _context.Users
+            .FirstOrDefaultAsync(x =>
+                x.PasswordResetToken == token);
     }
 
+    public async Task<User?> GetByRefreshTokenAsync(
+        string refreshToken)
+    {
+        return await _context.Users
+            .FirstOrDefaultAsync(x =>
+                x.RefreshToken == refreshToken);
+    }
 }
