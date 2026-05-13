@@ -100,8 +100,9 @@ public class AuthService : IAuthService
                     DateTime.Now.AddMinutes(AppConstants.LockoutMinutes);
             }
 
-            await _context.SaveChangesAsync();
-            return null;
+            await _unitOfWork.SaveChangesAsync();
+            return Result<LoginResponseDto>.Failure(
+                AuthMessages.IncorrectEmailOrPassword);
         }
 
         user.FailedLoginAttempts = 0;
@@ -202,9 +203,8 @@ public class AuthService : IAuthService
         // Hash the incoming token to find matching DB record
         var hashedToken = HashToken(refreshToken);
 
-        var user = await _context.Users
-            .FirstOrDefaultAsync(x =>
-                x.RefreshToken == hashedToken); // Compare with hashed value
+        var user = await _userRepository
+            .GetByRefreshTokenAsync(hashedToken); // Compare with hashed value
 
         if (user == null)
         {

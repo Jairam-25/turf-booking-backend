@@ -19,6 +19,9 @@ public static class AuthMessages
     public const string TokenExpired =
         "Token expired";
 
+    public const string IncorrectEmailOrPassword =
+        "Incorrect email or password";
+
     public const string PasswordResetSuccess =
         "Password reset successful";
 
