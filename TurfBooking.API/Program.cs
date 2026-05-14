@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Win32;
 using Persistence;
 using Persistence.Context;
+using StackExchange.Redis;
 using System.Text;
 using TurfBooking.API.Middlewares;
 
@@ -50,6 +52,16 @@ builder.Services.AddSwaggerGen(options =>
             Array.Empty<string>()
         }
     });
+});
+
+// Register Redis Distributed Cache
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    // Connection string for local Redis
+    options.Configuration = "localhost:6379";
+
+    // Prefix for all cache keys (avoids key conflicts)
+    options.InstanceName = "TurfBooking_";
 });
 
 // Fluent Validation
