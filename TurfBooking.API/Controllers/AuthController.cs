@@ -1,4 +1,4 @@
-﻿using Application.Common.Messages;
+﻿
 using Application.DTOs;
 using Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -74,7 +74,7 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
-            Message = AuthMessages.ResetTokenGenerated,
+            Message = AuthMessages.ResetLinkSent,
             Token = result
         });
     }

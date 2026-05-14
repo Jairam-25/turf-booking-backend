@@ -1,5 +1,4 @@
 ﻿using Application.Common.Constants;
-using Application.Common.Messages;
 using Application.Common.Settings;
 using Application.DTOs;
 using Application.Interfaces;
@@ -17,26 +16,27 @@ namespace Infrastructure.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUserRepository _userRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly JwtSettings _jwtSettings;
     private readonly IEmailService _emailService;
 
     public AuthService(
-        ApplicationDbContext context,
+        IUserRepository userRepository,
+        IUnitOfWork unitOfWork,
         IOptions<JwtSettings> jwtSettings,
-        IEmailService emailService
-    )
+        IEmailService emailService)
     {
-        _context = context;
+        _userRepository = userRepository;
+        _unitOfWork = unitOfWork;
         _jwtSettings = jwtSettings.Value;
         _emailService = emailService;
     }
 
-    public async Task<string> RegisterAsync(RegisterRequestDto request)
+    public async Task<Result<string>> RegisterAsync(RegisterRequestDto request)
     {
-        var existingUser = await _context.Users
-        .FirstOrDefaultAsync(x =>
-            x.Email == request.Email);
+        var existingUser = await _userRepository
+            .GetByEmailAsync(new LoginRequestDto { EmailOrPhone = request.Email });
 
         if (existingUser != null)
         {
@@ -54,43 +54,39 @@ public class AuthService : IAuthService
             Password = hashedPassword
         };
 
-        _context.Users.Add(user);
+       await _userRepository.AddAsync(user);
 
-        await _context.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
-        // Sended mail after registeration on Registered mail I'd or mobile number.
-        await _emailService.SendWelcomeEmailAsync
-        (
-            user.Email,
-            user.Name
-        );
+            // Sended mail after registeration on Registered mail I'd or mobile number.
+            await _emailService.SendWelcomeEmailAsync
+            (
+                user.Email,
+                user.Name
+            );
 
-        return AuthMessages.RegisterSuccess;
+        return Result<string>.Success(AuthMessages.RegisterSuccess);
     }
 
-    public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto request)
+    public async Task<Result<LoginResponseDto>>
+     LoginAsync(LoginRequestDto req)
     {
-        var user = await _context.Users
-        .FirstOrDefaultAsync(x =>
-            x.Email == request.EmailOrPhone
-            ||
-            x.PhoneNumber == request.EmailOrPhone);
+        var user = await _userRepository.GetByEmailAsync(req);
 
         if (user == null)
         {
-            return null;
+            return Result<LoginResponseDto>.Failure(
+                AuthMessages.InvalidCredentials);
         }
 
-        if (user.IsLocked &&
-            user.LockoutEnd > DateTime.UtcNow)
+        if (user.IsLocked && user.LockoutEnd > DateTime.UtcNow)
         {
-            throw new Exception(
-                AuthMessages.LoginMaxAttempt);
+            throw new Exception(AuthMessages.LoginMaxAttempt);
         }
 
         var isPasswordValid =
             BCrypt.Net.BCrypt.Verify(
-                request.Password,
+                req.Password,
                 user.Password);
 
         if (!isPasswordValid)
@@ -100,14 +96,13 @@ public class AuthService : IAuthService
             if (user.FailedLoginAttempts >= AppConstants.MaxLoginAttempts)
             {
                 user.IsLocked = true;
-
                 user.LockoutEnd =
                     DateTime.Now.AddMinutes(AppConstants.LockoutMinutes);
             }
 
-            await _context.SaveChangesAsync();
-
-            return null;
+            await _unitOfWork.SaveChangesAsync();
+            return Result<LoginResponseDto>.Failure(
+                AuthMessages.IncorrectEmailOrPassword);
         }
 
         user.FailedLoginAttempts = 0;
@@ -115,147 +110,153 @@ public class AuthService : IAuthService
 
         var token = GenerateJwtToken(user);
 
-        var refreshToken = GenerateRefreshToken();
+        // Generate raw token to send to client
+        var rawRefreshToken = GenerateRefreshToken();
 
-        user.RefreshToken = refreshToken;
+        // Store HASHED version in DB (not plain text)
+        user.RefreshToken = HashToken(rawRefreshToken);
 
         user.RefreshTokenExpiryTime =
-            DateTime.UtcNow.AddDays(AppConstants.RefreshTokenExpiryDays);
+            DateTime.UtcNow.AddDays(7);
 
-        await _context.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
-        return new LoginResponseDto
+        var response = new LoginResponseDto
         {
             Name = user.Name,
             Email = user.Email,
             Number = user.PhoneNumber,
             Role = user.Role,
             Token = token,
-            RefreshToken = refreshToken
+            // Return RAW token to client (not hashed)
+            RefreshToken = rawRefreshToken
         };
+
+        return Result<LoginResponseDto>
+            .Success(response);
     }
 
     // Forget password
-    public async Task<string> ForgotPasswordAsync(
-    ForgotPasswordRequestDto request)
+    public async Task<Result<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request)
     {
-        var user = await _context.Users
-            .FirstOrDefaultAsync(x =>
-                x.Email == request.Email);
+        var user = await _userRepository
+            .GetByEmailAsync(new LoginRequestDto { EmailOrPhone = request.Email });
 
         if (user == null)
         {
-            throw new Exception(AuthMessages.UserNotFound);
+            return Result<string>.Failure(
+                AuthMessages.UserNotFound);
         }
 
-        var resetToken =
-            Convert.ToHexString(
-                RandomNumberGenerator.GetBytes(AppConstants.ByteNumber));
+        var resetToken = Guid.NewGuid().ToString();
 
         user.PasswordResetToken = resetToken;
-
         user.ResetTokenExpires =
-            DateTime.UtcNow.AddMinutes(AppConstants.LockoutMinutes);
+            DateTime.UtcNow.AddMinutes(30);
 
-        await _context.SaveChangesAsync();
-
-        // Normally send email here
-
-        return resetToken;
+        await _unitOfWork.SaveChangesAsync();
+      
+        return Result<string>.Success(
+            resetToken);
     }
 
-    // Reset password
-    public async Task<string> ResetPasswordAsync(
-    ResetPasswordRequestDto request)
+    // RESET PASSWORD
+    // ResetPasswordAsync
+
+    public async Task<Result<string>> ResetPasswordAsync(
+        ResetPasswordRequestDto request)
     {
-        var user = await _context.Users
-            .FirstOrDefaultAsync(x =>
-                x.PasswordResetToken == request.Token);
+        var user = await _userRepository
+            .GetByPasswordResetTokenAsync(
+                request.Token);
 
         if (user == null)
         {
-            throw new Exception(AuthMessages.InvalidToken);
+            return Result<string>.Failure(
+                AuthMessages.InvalidToken);
         }
 
         if (user.ResetTokenExpires < DateTime.UtcNow)
         {
-            throw new Exception(AuthMessages.TokenExpired);
+            return Result<string>.Failure(
+                AuthMessages.TokenExpired);
         }
 
-        var hashedPassword =
-            BCrypt.Net.BCrypt.HashPassword(
-                request.NewPassword);
-
-        user.Password = hashedPassword;
+        user.Password =
+            BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
         user.PasswordResetToken = null;
-
         user.ResetTokenExpires = null;
 
-        await _context.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
-        return AuthMessages.PasswordResetSuccess;
+        return Result<string>.Success(
+            AuthMessages.PasswordResetSuccess);
     }
 
-    public async Task<LoginResponseDto?> RefreshTokenAsync(
-        string refreshToken)
+    // REFRESH TOKEN
+    // RefreshTokenAsync
+
+    public async Task<Result<LoginResponseDto>>
+        RefreshTokenAsync(string refreshToken)
     {
-        var user = await _context.Users
-            .FirstOrDefaultAsync(x =>
-                x.RefreshToken == refreshToken);
+        // Hash the incoming token to find matching DB record
+        var hashedToken = HashToken(refreshToken);
+
+        var user = await _userRepository
+            .GetByRefreshTokenAsync(hashedToken); // Compare with hashed value
 
         if (user == null)
         {
-            return null;
+            return Result<LoginResponseDto>.Failure(
+                AuthMessages.InvalidToken);
         }
 
         if (user.RefreshTokenExpiryTime < DateTime.UtcNow)
         {
-            return null;
+            return Result<LoginResponseDto>.Failure(
+                AuthMessages.TokenExpired);
         }
 
         var newJwtToken = GenerateJwtToken(user);
 
-        var newRefreshToken = GenerateRefreshToken();
+        // New raw token for client
+        var newRawRefreshToken = GenerateRefreshToken();
 
-        user.RefreshToken = newRefreshToken;
+        // Store new hashed token in DB
+        user.RefreshToken = HashToken(newRawRefreshToken);
 
-        await _context.SaveChangesAsync();
+        user.RefreshTokenExpiryTime =
+            DateTime.UtcNow.AddDays(7);
 
-        return new LoginResponseDto
+        await _unitOfWork.SaveChangesAsync();
+
+        var response = new LoginResponseDto
         {
             Name = user.Name,
             Email = user.Email,
             Role = user.Role,
             Token = newJwtToken,
-            RefreshToken = newRefreshToken
+            // Send raw token back to client
+            RefreshToken = newRawRefreshToken
         };
+
+        return Result<LoginResponseDto>
+            .Success(response);
     }
 
     private string GenerateJwtToken(User user)
     {
         var claims = new[]
         {
-            new Claim(
-                ClaimTypes.NameIdentifier,
-                user.Id.ToString()),
-
-            new Claim(
-                ClaimTypes.Name,
-                user.Name),
-
-            new Claim(
-                ClaimTypes.Email,
-                user.Email),
-
-            new Claim(
-                ClaimTypes.Role,
-                user.Role)
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name,           user.Name),
+            new Claim(ClaimTypes.Email,          user.Email),
+            new Claim(ClaimTypes.Role,           user.Role)
         };
 
         var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(
-                _jwtSettings.Key));
+            Encoding.UTF8.GetBytes(_jwtSettings.Key));
 
         var creds = new SigningCredentials(
             key,
@@ -268,19 +269,32 @@ public class AuthService : IAuthService
             expires: DateTime.UtcNow.AddMinutes(AppConstants.ExpiryMinutes),
             signingCredentials: creds);
 
-        return new JwtSecurityTokenHandler()
-            .WriteToken(token);
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
     private string GenerateRefreshToken()
     {
         var randomNumber = new byte[AppConstants.ByteNumber];
 
-        using var rng =
-            RandomNumberGenerator.Create();
+        using var rng = RandomNumberGenerator.Create();
 
         rng.GetBytes(randomNumber);
 
         return Convert.ToBase64String(randomNumber);
+    }
+
+    // --------------------------------------------------------
+    // METHOD — Hash token using SHA256
+    // WHY SHA256 : Unlike BCrypt, SHA256 is deterministic so
+    // we can hash the incoming token and query it in the DB.
+    // BCrypt generates different hashes each time (random salt)
+    // making DB lookup impossible — SHA256 solves this.
+    // --------------------------------------------------------
+    private string HashToken(string token)
+    {
+        var bytes = SHA256.HashData(
+            Encoding.UTF8.GetBytes(token));
+
+        return Convert.ToHexString(bytes);
     }
 }

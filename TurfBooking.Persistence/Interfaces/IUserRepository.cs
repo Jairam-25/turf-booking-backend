@@ -1,10 +1,15 @@
-﻿using Domain.Entities;
-
-namespace TurfBooking.Persistence.Interfaces;
+﻿using Application.DTOs;
+using Application.Interfaces;
+using Domain.Entities;
 
 public interface IUserRepository
+    : IGenericRepository<User>
 {
-    Task<User?> GetByEmailAsync(string email);
+    Task<User?> GetByEmailAsync(LoginRequestDto req);
 
-    Task AddAsync(User user);
+    Task<User?> GetByPasswordResetTokenAsync(
+        string token);
+
+    Task<User?> GetByRefreshTokenAsync(
+        string refreshToken);
 }
