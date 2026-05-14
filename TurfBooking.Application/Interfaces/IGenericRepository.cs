@@ -9,7 +9,9 @@ public interface IGenericRepository<T>
 
     Task AddAsync(T entity);
 
-    void Update(T entity);
+    Task Update(T entity);
 
-    void Delete(T entity);
+    Task Delete(T entity);
+
+    IQueryable<T> AsQueryable();
 }

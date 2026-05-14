@@ -2,12 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
 
+namespace Persistence.Repositories;
+
 public class GenericRepository<T>
-    : IGenericRepository<T>
-    where T : class
+    : IGenericRepository<T> where T : class
 {
     protected readonly ApplicationDbContext _context;
-
     protected readonly DbSet<T> _dbSet;
 
     public GenericRepository(ApplicationDbContext context)
@@ -17,27 +17,20 @@ public class GenericRepository<T>
     }
 
     public async Task<T?> GetByIdAsync(Guid id)
-    {
-        return await _dbSet.FindAsync(id);
-    }
+        => await _dbSet.FindAsync(id);
 
     public async Task<IEnumerable<T>> GetAllAsync()
-    {
-        return await _dbSet.ToListAsync();
-    }
+        => await _dbSet.ToListAsync();
 
     public async Task AddAsync(T entity)
-    {
-        await _dbSet.AddAsync(entity);
-    }
+        => await _dbSet.AddAsync(entity);
 
-    public void Update(T entity)
-    {
-        _dbSet.Update(entity);
-    }
+    public async Task Update(T entity)
+        => _dbSet.Update(entity);
 
-    public void Delete(T entity)
-    {
-        _dbSet.Remove(entity);
-    }
+    public async Task Delete(T entity)
+        => _dbSet.Remove(entity);
+
+    public IQueryable<T> AsQueryable()
+        => _dbSet.AsQueryable();
 }
