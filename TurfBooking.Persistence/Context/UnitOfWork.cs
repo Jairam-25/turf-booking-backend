@@ -1,32 +1,34 @@
 ﻿using Application.Interfaces;
 using Domain.Entities;
-using Persistence.Context;
+using Persistence.Repositories;
 
-namespace Persistence.Repositories;
-
-public class UnitOfWork : IUnitOfWork
+namespace Persistence.Context
 {
-    private readonly ApplicationDbContext _context;
 
-    public IGenericRepository<User> Users { get; }
-
-    public IGenericRepository<Booking> Bookings { get; }
-
-    public IGenericRepository<Turf> Turfs { get; }
-
-    public UnitOfWork(ApplicationDbContext context)
+    public class UnitOfWork : IUnitOfWork
     {
-        _context = context;
+        private readonly ApplicationDbContext _context;
 
-        Users = new GenericRepository<User>(_context);
+        public IGenericRepository<User> Users { get; }
 
-        Bookings = new GenericRepository<Booking>(_context);
+        public IGenericRepository<Booking> Bookings { get; }
 
-        Turfs = new GenericRepository<Turf>(_context);
-    }
+        public IGenericRepository<Turf> Turfs { get; }
 
-    public async Task<int> SaveChangesAsync()
-    {
-        return await _context.SaveChangesAsync();
+        public UnitOfWork(ApplicationDbContext context)
+        {
+            _context = context;
+
+            Users = new GenericRepository<User>(_context);
+
+            Bookings = new GenericRepository<Booking>(_context);
+
+            Turfs = new GenericRepository<Turf>(_context);
+        }
+
+        public async Task<int> SaveChangesAsync()
+        {
+            return await _context.SaveChangesAsync();
+        }
     }
 }

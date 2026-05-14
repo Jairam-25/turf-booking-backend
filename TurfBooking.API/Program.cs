@@ -2,15 +2,12 @@ using Application.Common.Settings;
 using Application.Validators;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Hangfire;
 using Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.Win32;
 using Persistence;
-using Persistence.Context;
-using StackExchange.Redis;
 using System.Text;
 using TurfBooking.API.Middlewares;
 
@@ -64,19 +61,24 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "TurfBooking_";
 });
 
+// Register Hangfire with SQL Server storage
+builder.Services.AddHangfire(config =>
+    config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+          .UseSimpleAssemblyNameTypeSerializer()
+          .UseRecommendedSerializerSettings()
+          .UseSqlServerStorage(
+              builder.Configuration.GetConnectionString(
+                  "DefaultConnection")));
+
+// Added Hangfire background job server
+builder.Services.AddHangfireServer();
+
 // Fluent Validation
 builder.Services
     .AddFluentValidationAutoValidation();
 builder.Services
     .AddValidatorsFromAssemblyContaining
         <RegisterRequestValidator>();
-
-// Database Connection
-//builder.Services.AddDbContext<ApplicationDbContext>(
-//    options =>
-//        options.UseSqlServer(
-//            builder.Configuration.GetConnectionString(
-//                "DefaultConnection")));
 
 // Dependency Injection
 builder.Services.AddPersistence(
@@ -166,6 +168,11 @@ app.UseCors("AllowAngular");
 // Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseHangfireDashboard("/hangfire");
+}
 
 // Map Controllers
 app.MapControllers();

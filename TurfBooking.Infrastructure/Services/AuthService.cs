@@ -4,6 +4,7 @@ using Application.Common.Settings;
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
+using Hangfire;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -18,7 +19,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
-    private readonly IEmailService _emailService = emailService;    
+    private readonly IEmailService _emailService = emailService;
 
     public async Task<Result<string>> RegisterAsync(RegisterRequestDto request)
     {
@@ -45,12 +46,13 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
 
         await _unitOfWork.SaveChangesAsync();
 
-        // Sended mail after registeration on Registered mail I'd or mobile number.
-        await _emailService.SendWelcomeEmailAsync
-        (
-            user.Email,
-            user.Name
-        );
+        // Registration now returns IMMEDIATELY.
+        // Hangfire picks up the job and sends email in background.
+        // If email fails, Hangfire automatically retries 10 times.
+        BackgroundJob.Enqueue<IEmailService>(emailSvc =>
+            emailSvc.SendWelcomeEmailAsync(
+                user.Email,
+                user.Name));
 
         return Result<string>.Success(AuthMessages.RegisterSuccess);
     }
