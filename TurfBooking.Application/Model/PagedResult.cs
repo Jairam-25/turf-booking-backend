@@ -3,8 +3,7 @@
     public class PagedResult<T>
     {
         // The actual list of items for this page
-        public IEnumerable<T> Items { get; set; }
-            = Enumerable.Empty<T>();
+        public IEnumerable<T> Items { get; set; } = [];
 
         // Total number of records in DB (without pagination)
         public int TotalCount { get; set; }

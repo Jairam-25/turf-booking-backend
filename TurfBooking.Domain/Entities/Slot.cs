@@ -14,8 +14,7 @@ public class Slot
     public int TurfId { get; set; }
 
     // Navigation Property
-    public Turf? Turf { get; set; } 
+    public Turf? Turf { get; set; }
 
-    public ICollection<Booking> Bookings { get; set; }
-        = new List<Booking>();
+    public ICollection<Booking> Bookings { get; set; } = [];
 }

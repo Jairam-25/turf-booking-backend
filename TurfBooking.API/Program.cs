@@ -72,11 +72,11 @@ builder.Services
         <RegisterRequestValidator>();
 
 // Database Connection
-builder.Services.AddDbContext<ApplicationDbContext>(
-    options =>
-        options.UseSqlServer(
-            builder.Configuration.GetConnectionString(
-                "DefaultConnection")));
+//builder.Services.AddDbContext<ApplicationDbContext>(
+//    options =>
+//        options.UseSqlServer(
+//            builder.Configuration.GetConnectionString(
+//                "DefaultConnection")));
 
 // Dependency Injection
 builder.Services.AddPersistence(

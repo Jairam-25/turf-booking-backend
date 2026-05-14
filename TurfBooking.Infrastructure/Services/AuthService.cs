@@ -1,12 +1,11 @@
 ﻿using Application.Common.Constants;
+using Application.Common.Messages;
 using Application.Common.Settings;
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
 using Microsoft.Extensions.Options;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Persistence.Context;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -14,24 +13,12 @@ using System.Text;
 
 namespace Infrastructure.Services;
 
-public class AuthService : IAuthService
+public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork, IOptions<JwtSettings> jwtSettings, IEmailService emailService) : IAuthService
 {
-    private readonly IUserRepository _userRepository;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly JwtSettings _jwtSettings;
-    private readonly IEmailService _emailService;
-
-    public AuthService(
-        IUserRepository userRepository,
-        IUnitOfWork unitOfWork,
-        IOptions<JwtSettings> jwtSettings,
-        IEmailService emailService)
-    {
-        _userRepository = userRepository;
-        _unitOfWork = unitOfWork;
-        _jwtSettings = jwtSettings.Value;
-        _emailService = emailService;
-    }
+    private readonly IUserRepository _userRepository = userRepository;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly IEmailService _emailService = emailService;    
 
     public async Task<Result<string>> RegisterAsync(RegisterRequestDto request)
     {
@@ -54,16 +41,16 @@ public class AuthService : IAuthService
             Password = hashedPassword
         };
 
-       await _userRepository.AddAsync(user);
+        await _userRepository.AddAsync(user);
 
         await _unitOfWork.SaveChangesAsync();
 
-            // Sended mail after registeration on Registered mail I'd or mobile number.
-            await _emailService.SendWelcomeEmailAsync
-            (
-                user.Email,
-                user.Name
-            );
+        // Sended mail after registeration on Registered mail I'd or mobile number.
+        await _emailService.SendWelcomeEmailAsync
+        (
+            user.Email,
+            user.Name
+        );
 
         return Result<string>.Success(AuthMessages.RegisterSuccess);
     }
@@ -155,7 +142,7 @@ public class AuthService : IAuthService
             DateTime.UtcNow.AddMinutes(30);
 
         await _unitOfWork.SaveChangesAsync();
-      
+
         return Result<string>.Success(
             resetToken);
     }
@@ -272,7 +259,7 @@ public class AuthService : IAuthService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private string GenerateRefreshToken()
+    private static string GenerateRefreshToken()
     {
         var randomNumber = new byte[AppConstants.ByteNumber];
 
@@ -290,7 +277,7 @@ public class AuthService : IAuthService
     // BCrypt generates different hashes each time (random salt)
     // making DB lookup impossible — SHA256 solves this.
     // --------------------------------------------------------
-    private string HashToken(string token)
+    private static string HashToken(string token)
     {
         var bytes = SHA256.HashData(
             Encoding.UTF8.GetBytes(token));

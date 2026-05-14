@@ -1,92 +1,87 @@
-﻿
+﻿using Application.Common.Messages;
 using Application.DTOs;
-using Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace API.Controllers;
-
-[ApiController]
-
-[Route("api/[controller]")]
-
-public class AuthController : ControllerBase
+namespace TurfBooking.API.Controllers
 {
-    private readonly IAuthService _authService;
 
-    public AuthController(
-        IAuthService authService)
+    [ApiController]
+
+    [Route("api/[controller]")]
+
+    public class AuthController(IAuthService authService) : ControllerBase
     {
-        _authService = authService;
-    }
+        private readonly IAuthService _authService = authService;        
 
-    [HttpPost("register")]
+        [HttpPost("register")]
 
-    public async Task<IActionResult> Register(
-        RegisterRequestDto request)
-    {
-        var result =
-            await _authService.RegisterAsync(request);
-
-        return Ok(result);
-    }
-
-    [HttpPost("login")]
-
-    public async Task<IActionResult> Login(
-        LoginRequestDto request)
-    {
-        var result =
-            await _authService.LoginAsync(request);
-
-        if (result == null)
+        public async Task<IActionResult> Register(
+            RegisterRequestDto request)
         {
-            return Unauthorized(
-                AuthMessages.InvalidCredentials);
+            var result =
+                await _authService.RegisterAsync(request);
+
+            return Ok(result);
         }
 
-        return Ok(result);
-    }
+        [HttpPost("login")]
 
-    [HttpPost("refresh-token")]
-
-    public async Task<IActionResult> RefreshToken(
-        string refreshToken)
-    {
-        var result =
-            await _authService
-                .RefreshTokenAsync(refreshToken);
-
-        if (result == null)
+        public async Task<IActionResult> Login(
+            LoginRequestDto request)
         {
-            return Unauthorized();
+            var result =
+                await _authService.LoginAsync(request);
+
+            if (result == null)
+            {
+                return Unauthorized(
+                    AuthMessages.InvalidCredentials);
+            }
+
+            return Ok(result);
         }
 
-        return Ok(result);
-    }
+        [HttpPost("refresh-token")]
 
-    [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPassword(
-    ForgotPasswordRequestDto request)
-    {
-        var result =
-            await _authService
-                .ForgotPasswordAsync(request);
-
-        return Ok(new
+        public async Task<IActionResult> RefreshToken(
+            string refreshToken)
         {
-            Message = AuthMessages.ResetLinkSent,
-            Token = result
-        });
-    }
+            var result =
+                await _authService
+                    .RefreshTokenAsync(refreshToken);
 
-    [HttpPost("reset-password")]
-    public async Task<IActionResult> ResetPassword(
-    ResetPasswordRequestDto request)
-    {
-        var result =
-            await _authService
-                .ResetPasswordAsync(request);
+            if (result == null)
+            {
+                return Unauthorized();
+            }
 
-        return Ok(result);
+            return Ok(result);
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(
+        ForgotPasswordRequestDto request)
+        {
+            var result =
+                await _authService
+                    .ForgotPasswordAsync(request);
+
+            return Ok(new
+            {
+                Message = AuthMessages.ResetLinkSent,
+                Token = result
+            });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(
+        ResetPasswordRequestDto request)
+        {
+            var result =
+                await _authService
+                    .ResetPasswordAsync(request);
+
+            return Ok(result);
+        }
     }
 }
