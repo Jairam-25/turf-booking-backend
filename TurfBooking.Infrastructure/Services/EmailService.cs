@@ -1,4 +1,4 @@
-﻿using Application.Common.Settings;
+using Application.Common.Settings;
 using Application.Interfaces;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Options;
@@ -51,6 +51,23 @@ public class EmailService : IEmailService
 
         await smtp.SendAsync(email);
 
+        await smtp.DisconnectAsync(true);
+    }
+
+    public async Task SendPasswordResetEmailAsync(string toEmail, string userName, string resetToken)
+    {
+        var email = new MimeMessage();
+        email.From.Add(MailboxAddress.Parse(_emailSettings.Email));
+        email.To.Add(MailboxAddress.Parse(toEmail));
+        email.Subject = "Reset Your Password";
+        var resetLink = $"http://localhost:4200/auth/reset-password?token={resetToken}";
+        email.Body = new TextPart("html") {
+            Text = $"<h2>Hello {userName},</h2><p>Click <a href='{resetLink}'>here</a> to reset your password.</p>"
+        };
+        using var smtp = new SmtpClient();
+        await smtp.ConnectAsync("smtp.gmail.com", 587, false);
+        await smtp.AuthenticateAsync(_emailSettings.Email, _emailSettings.Password);
+        await smtp.SendAsync(email);
         await smtp.DisconnectAsync(true);
     }
 }

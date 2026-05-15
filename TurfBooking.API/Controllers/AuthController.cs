@@ -1,4 +1,4 @@
-﻿using Application.Common.Messages;
+using Application.Common.Messages;
 using Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -22,6 +22,14 @@ namespace TurfBooking.API.Controllers
             var result =
                 await _authService.RegisterAsync(request);
 
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new
+                {
+                    message = result.Error ?? "Registration failed"
+                });
+            }
+
             return Ok(result);
         }
 
@@ -33,10 +41,12 @@ namespace TurfBooking.API.Controllers
             var result =
                 await _authService.LoginAsync(request);
 
-            if (result == null)
+            if (!result.IsSuccess)
             {
-                return Unauthorized(
-                    AuthMessages.InvalidCredentials);
+                return Unauthorized(new
+                {
+                    message = result.Error ?? AuthMessages.InvalidCredentials
+                });
             }
 
             return Ok(result);

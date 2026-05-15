@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,5 +11,10 @@ namespace Application.Interfaces
         Task SendWelcomeEmailAsync(
         string toEmail,
         string userName);
+
+        Task SendPasswordResetEmailAsync(
+            string toEmail,
+            string userName,
+            string resetToken);
     }
 }

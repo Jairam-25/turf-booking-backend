@@ -1,4 +1,4 @@
-﻿using Application.Common.Constants;
+using Application.Common.Constants;
 using Application.Common.Messages;
 using Application.Common.Settings;
 using Application.DTOs;
@@ -29,7 +29,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
 
         if (existingUser != null)
         {
-            throw new Exception(AuthMessages.EmailAlreadyExists);
+            return Result<string>.Failure(AuthMessages.EmailAlreadyExists);
         }
 
         var hashedPassword =
@@ -71,7 +71,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
 
         if (user.IsLocked && user.LockoutEnd > DateTime.UtcNow)
         {
-            throw new Exception(AuthMessages.LoginMaxAttempt);
+            return Result<LoginResponseDto>.Failure(AuthMessages.LoginMaxAttempt);
         }
 
         var isPasswordValid =
@@ -145,6 +145,12 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
             DateTime.UtcNow.AddMinutes(30);
 
         await _unitOfWork.SaveChangesAsync();
+
+        BackgroundJob.Enqueue<IEmailService>(emailSvc =>
+            emailSvc.SendPasswordResetEmailAsync(
+                user.Email,
+                user.Name,
+                resetToken));
 
         return Result<string>.Success(
             resetToken);
