@@ -2,6 +2,7 @@
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
+using Persistence.Interfaces;
 
 namespace Persistence.Repositories
 {
@@ -18,6 +19,15 @@ namespace Persistence.Repositories
             return await _context.Users
                 .FirstOrDefaultAsync(x => x.Email == req.EmailOrPhone || x.PhoneNumber == req.EmailOrPhone);
         }
+
+        public async Task<Turf?> ValidateIdAsync(int? id)
+        {
+            return await _context.Turfs
+            .FirstOrDefaultAsync(t =>
+                t.Id == id &&
+                !t.IsDeleted);
+        }
+
         public async Task<User?> GetByPasswordResetTokenAsync(
         string token)
         {

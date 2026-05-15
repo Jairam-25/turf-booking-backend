@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
 using System.Security.Claims;
 
-namespace API.Controllers;
+namespace TurfBooking.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

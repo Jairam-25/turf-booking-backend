@@ -9,5 +9,7 @@ namespace Persistence.Interfaces
         TurfQueryParameters query);
 
         Task<TurfResponseDto> CreateTurfAsync(CreateTurfDto dto);
+
+        Task<bool> DeleteTurfAsync(int id);
     }
 }

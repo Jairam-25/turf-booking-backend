@@ -2,14 +2,19 @@
 using Application.Interfaces;
 using Domain.Entities;
 
-public interface IUserRepository
-    : IGenericRepository<User>
+namespace Persistence.Interfaces
 {
-    Task<User?> GetByEmailAsync(LoginRequestDto req);
+    public interface IUserRepository
+        : IGenericRepository<User>
+    {
+        Task<User?> GetByEmailAsync(LoginRequestDto req);
 
-    Task<User?> GetByPasswordResetTokenAsync(
-        string token);
+        Task<User?> GetByPasswordResetTokenAsync(
+            string token);
 
-    Task<User?> GetByRefreshTokenAsync(
-        string refreshToken);
+        Task<User?> GetByRefreshTokenAsync(
+            string refreshToken);
+
+        Task<Turf?> ValidateIdAsync(int? id);
+    }
 }

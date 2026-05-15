@@ -10,6 +10,8 @@ using Microsoft.OpenApi.Models;
 using Persistence;
 using System.Text;
 using TurfBooking.API.Middlewares;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,6 +74,60 @@ builder.Services.AddHangfire(config =>
 
 // Added Hangfire background job server
 builder.Services.AddHangfireServer();
+
+// Define rate limiting policies
+builder.Services.AddRateLimiter(options =>
+{
+    // Policy 1 : Login — max 5 attempts per minute per IP
+    options.AddFixedWindowLimiter(
+        policyName: "LoginPolicy",
+        configureOptions: opt =>
+        {
+            opt.PermitLimit = 5;
+            opt.Window = TimeSpan.FromMinutes(1);
+            opt.QueueProcessingOrder =
+                QueueProcessingOrder.OldestFirst;
+            opt.QueueLimit = 0; // No queuing — reject immediately
+        });
+
+    // Policy 2 : ForgotPassword — max 3 attempts per 5 minutes per IP
+    options.AddFixedWindowLimiter(
+        policyName: "ForgotPasswordPolicy",
+        configureOptions: opt =>
+        {
+            opt.PermitLimit = 3;
+            opt.Window = TimeSpan.FromMinutes(5);
+            opt.QueueProcessingOrder =
+                QueueProcessingOrder.OldestFirst;
+            opt.QueueLimit = 0;
+        });
+
+    // Policy 3 : Register — max 10 per minute
+    options.AddFixedWindowLimiter(
+        policyName: "RegisterPolicy",
+        configureOptions: opt =>
+        {
+            opt.PermitLimit = 10;
+            opt.Window = TimeSpan.FromMinutes(1);
+            opt.QueueLimit = 0;
+        });
+
+    // Global : What to return when limit is exceeded
+    options.RejectionStatusCode = 429; // 429 = Too Many Requests
+
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = 429;
+
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new
+            {
+                success = false,
+                message = "Too many requests. Please wait and try again.",
+                retryAfter = "60 seconds"
+            }, token);
+    };
+});
 
 // Fluent Validation
 builder.Services
@@ -164,6 +220,8 @@ app.UseHttpsRedirection();
 
 // CORS
 app.UseCors("AllowAngular");
+
+app.UseRateLimiter();
 
 // Authentication & Authorization
 app.UseAuthentication();

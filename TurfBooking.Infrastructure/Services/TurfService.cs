@@ -1,4 +1,5 @@
-﻿using Application.DTOs;
+﻿using Application.Common.Messages;
+using Application.DTOs;
 using Application.Interfaces;
 using Application.Model;
 using Domain.Entities;
@@ -10,12 +11,13 @@ using System.Text.Json;
 
 namespace Infrastructure.Services;
 
-public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogger<TurfService> logger) : ITurfService
+public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogger<TurfService> logger, IUserRepository userRepository) : ITurfService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IDistributedCache _cache = cache;
     private readonly ILogger<TurfService> _logger = logger;
     private const string CachePrefix = "turfs_";
+    private readonly IUserRepository _userRepository = userRepository;
 
     public async Task<PagedResult<TurfResponseDto>> GetAllTurfAsync(
         TurfQueryParameters query)
@@ -191,4 +193,48 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         await _cache.RemoveAsync(
             $"{CachePrefix}p1_ps10_localall_min0_max0_sortid_asc");
     }
+
+    public async Task<bool> DeleteTurfAsync(int id)
+    {
+        var turf = await _userRepository.ValidateIdAsync(id);
+
+        if (turf == null)
+        {
+            _logger.LogWarning(
+                "Delete failed. Turf not found. Id: {Id}",
+                id);
+
+            return false;
+        }
+
+        // Soft Delete
+        turf.IsDeleted = true;
+        turf.DeletedAt = DateTime.UtcNow;
+
+        await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Turf soft deleted successfully. Id: {Id}",
+            id);
+
+        // Invalidate Cache
+        try
+        {
+            await InvalidateTurfCacheAsync();
+
+            _logger.LogInformation(
+                "Turf cache invalidated after delete. Id: {Id}",
+                id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to invalidate turf cache after delete. Id: {Id}",
+                id);
+        }
+
+        return true;
+    }
+
 }
