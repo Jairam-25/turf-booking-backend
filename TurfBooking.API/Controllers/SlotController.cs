@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
+using Application.Common.Result;
 
 namespace TurfBooking.API.Controllers
 {
@@ -35,7 +36,7 @@ namespace TurfBooking.API.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(slots);
+            return Ok(ApiResponse<object>.SuccessResponse(slots, "Slots retrieved successfully"));
         }
     }
 
