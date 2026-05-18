@@ -77,7 +77,7 @@ namespace TurfBooking.API.Controllers
                 return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Forgot password request failed", null, 400));
             }
 
-            return Ok(ApiResponse<string>.SuccessResponse(result.Value, AuthMessages.ResetLinkSent));
+            return Ok(ApiResponse<string>.SuccessResponse(result.Value ?? string.Empty, AuthMessages.ResetLinkSent));
         }
 
         [HttpPost("reset-password")]
@@ -93,7 +93,7 @@ namespace TurfBooking.API.Controllers
                 return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Password reset failed", null, 400));
             }
 
-            return Ok(ApiResponse<string>.SuccessResponse(result.Value, "Password reset successfully"));
+            return Ok(ApiResponse<string>.SuccessResponse(result.Value ?? string.Empty, "Password reset successfully"));
         }
     }
 }

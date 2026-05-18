@@ -38,6 +38,6 @@ public class TurfController(ITurfService turfService) : ControllerBase
         if (!result)
             return NotFound(ApiResponse<object>.FailureResponse("Turf not found", null, 404));
 
-        return Ok(ApiResponse<object>.SuccessResponse(null, "Turf deleted successfully"));
+        return Ok(ApiResponse<string>.SuccessResponse(string.Empty, "Turf deleted successfully"));
     }
 }

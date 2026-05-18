@@ -126,6 +126,6 @@ public class BookingController : ControllerBase
 
         await _unitOfWork.SaveChangesAsync();
 
-        return Ok(ApiResponse<object>.SuccessResponse(null, "Booking cancelled successfully"));
+        return Ok(ApiResponse<string>.SuccessResponse(string.Empty, "Booking cancelled successfully"));
     }
 }
