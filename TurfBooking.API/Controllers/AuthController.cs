@@ -1,6 +1,7 @@
-﻿using Application.Common.Messages;
+using Application.Common.Messages;
 using Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace TurfBooking.API.Controllers
 {
@@ -14,35 +15,44 @@ namespace TurfBooking.API.Controllers
         private readonly IAuthService _authService = authService;        
 
         [HttpPost("register")]
-
+        [EnableRateLimiting("RegisterPolicy")]
         public async Task<IActionResult> Register(
             RegisterRequestDto request)
         {
             var result =
                 await _authService.RegisterAsync(request);
 
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new
+                {
+                    message = result.Error ?? "Registration failed"
+                });
+            }
+
             return Ok(result);
         }
 
         [HttpPost("login")]
-
+        [EnableRateLimiting("LoginPolicy")]
         public async Task<IActionResult> Login(
             LoginRequestDto request)
         {
             var result =
                 await _authService.LoginAsync(request);
 
-            if (result == null)
+            if (!result.IsSuccess)
             {
-                return Unauthorized(
-                    AuthMessages.InvalidCredentials);
+                return Unauthorized(new
+                {
+                    message = result.Error ?? AuthMessages.InvalidCredentials
+                });
             }
 
             return Ok(result);
         }
 
         [HttpPost("refresh-token")]
-
         public async Task<IActionResult> RefreshToken(
             string refreshToken)
         {
@@ -59,6 +69,7 @@ namespace TurfBooking.API.Controllers
         }
 
         [HttpPost("forgot-password")]
+        [EnableRateLimiting("ForgotPasswordPolicy")]
         public async Task<IActionResult> ForgotPassword(
         ForgotPasswordRequestDto request)
         {
