@@ -1,8 +1,8 @@
-﻿using Application.DTOs;
+using Application.DTOs;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
-using Persistence.Interfaces;
+using Application.Interfaces;
 
 namespace Persistence.Repositories
 {

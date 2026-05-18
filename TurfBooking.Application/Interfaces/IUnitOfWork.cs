@@ -1,14 +1,16 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 
 namespace Application.Interfaces;
 
 public interface IUnitOfWork
 {
-    IGenericRepository<User> Users { get; }
+    IUserRepository Users { get; }
 
-    IGenericRepository<Booking> Bookings { get; }
+    IBookingRepository Bookings { get; }
 
-    IGenericRepository<Turf> Turfs { get; }
+    ITurfRepository Turfs { get; }
+
+    ISlotRepository Slots { get; }
 
     Task<int> SaveChangesAsync();
 }

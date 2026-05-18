@@ -1,9 +1,9 @@
-﻿using Application.DTOs;
+using Application.DTOs;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Persistence.Context;
+using Application.Interfaces;
 using System.Security.Claims;
 
 namespace TurfBooking.API.Controllers;
@@ -13,11 +13,11 @@ namespace TurfBooking.API.Controllers;
 [Authorize]              // ← JWT token required for all endpoints
 public class BookingController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public BookingController(ApplicationDbContext context)
+    public BookingController(IUnitOfWork unitOfWork)
     {
-        _context = context;
+        _unitOfWork = unitOfWork;
     }
 
     // ── POST /api/booking ─────────────────────────────────
@@ -36,7 +36,7 @@ public class BookingController : ControllerBase
         var userId = int.Parse(userIdClaim);
 
         // Step 2 : Check if slot exists
-        var slot = await _context.Slots
+        var slot = await _unitOfWork.Slots.AsQueryable()
             .Include(s => s.Turf)
             .FirstOrDefaultAsync(s => s.Id == dto.SlotId);
 
@@ -60,9 +60,9 @@ public class BookingController : ControllerBase
         // Step 5 : Mark slot as booked
         slot.IsBooked = true;
 
-        _context.Bookings.Add(booking);
+        await _unitOfWork.Bookings.AddAsync(booking);
 
-        await _context.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         return Ok(new
         {
@@ -85,7 +85,7 @@ public class BookingController : ControllerBase
         var userId = int.Parse(
             User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-        var bookings = await _context.Bookings
+        var bookings = await _unitOfWork.Bookings.AsQueryable()
             .Include(b => b.Slot)
                 .ThenInclude(s => s!.Turf)
             .Where(b => b.UserId == userId)
@@ -112,7 +112,7 @@ public class BookingController : ControllerBase
         var userId = int.Parse(
             User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-        var booking = await _context.Bookings
+        var booking = await _unitOfWork.Bookings.AsQueryable()
             .Include(b => b.Slot)
             .FirstOrDefaultAsync(
                 b => b.Id == id && b.UserId == userId);
@@ -124,9 +124,9 @@ public class BookingController : ControllerBase
         // Free the slot so others can book it
         booking.Slot!.IsBooked = false;
 
-        _context.Bookings.Remove(booking);
+        await _unitOfWork.Bookings.Delete(booking);
 
-        await _context.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         return Ok(new { message = "Booking cancelled successfully" });
     }

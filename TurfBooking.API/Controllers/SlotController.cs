@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Persistence.Context;
+using Application.Interfaces;
 
 namespace TurfBooking.API.Controllers
 {
@@ -9,11 +9,11 @@ namespace TurfBooking.API.Controllers
     [ApiController]
     public class SlotController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public SlotController(ApplicationDbContext context)
+        public SlotController(IUnitOfWork unitOfWork)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
         }
 
         // GET /api/slot?turfId=11
@@ -23,7 +23,7 @@ namespace TurfBooking.API.Controllers
         public async Task<IActionResult> GetAvailableSlots(
             int turfId)
         {
-            var slots = await _context.Slots
+            var slots = await _unitOfWork.Slots.AsQueryable()
                 .Where(s => s.TurfId == turfId
                             && !s.IsBooked)
                 .Select(s => new

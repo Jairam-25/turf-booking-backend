@@ -1,8 +1,8 @@
-﻿using Application.DTOs;
+using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
 
-namespace Persistence.Interfaces
+namespace Application.Interfaces
 {
     public interface IUserRepository
         : IGenericRepository<User>

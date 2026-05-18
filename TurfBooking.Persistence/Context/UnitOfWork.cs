@@ -1,5 +1,6 @@
-﻿using Application.Interfaces;
+using Application.Interfaces;
 using Domain.Entities;
+using Application.Interfaces;
 using Persistence.Repositories;
 
 namespace Persistence.Context
@@ -9,21 +10,25 @@ namespace Persistence.Context
     {
         private readonly ApplicationDbContext _context;
 
-        public IGenericRepository<User> Users { get; }
+        public IUserRepository Users { get; }
 
-        public IGenericRepository<Booking> Bookings { get; }
+        public IBookingRepository Bookings { get; }
 
-        public IGenericRepository<Turf> Turfs { get; }
+        public ITurfRepository Turfs { get; }
+
+        public ISlotRepository Slots { get; }
 
         public UnitOfWork(ApplicationDbContext context)
         {
             _context = context;
 
-            Users = new GenericRepository<User>(_context);
+            Users = new UserRepository(_context);
 
-            Bookings = new GenericRepository<Booking>(_context);
+            Bookings = new BookingRepository(_context);
 
-            Turfs = new GenericRepository<Turf>(_context);
+            Turfs = new TurfRepository(_context);
+
+            Slots = new SlotRepository(_context);
         }
 
         public async Task<int> SaveChangesAsync()
