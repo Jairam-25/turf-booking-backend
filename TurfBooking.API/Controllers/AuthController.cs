@@ -1,4 +1,5 @@
 using Application.Common.Messages;
+using Application.Common.Result;
 using Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -24,13 +25,10 @@ namespace TurfBooking.API.Controllers
 
             if (!result.IsSuccess)
             {
-                return BadRequest(new
-                {
-                    message = result.Error ?? "Registration failed"
-                });
+                return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Registration failed", null, 400));
             }
 
-            return Ok(result);
+            return Ok(ApiResponse<string>.SuccessResponse(result.Value, "Registration successful"));
         }
 
         [HttpPost("login")]
@@ -43,13 +41,10 @@ namespace TurfBooking.API.Controllers
 
             if (!result.IsSuccess)
             {
-                return Unauthorized(new
-                {
-                    message = result.Error ?? AuthMessages.InvalidCredentials
-                });
+                return Unauthorized(ApiResponse<object>.FailureResponse(result.Error ?? AuthMessages.InvalidCredentials, null, 401));
             }
 
-            return Ok(result);
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(result.Value, "Login successful"));
         }
 
         [HttpPost("refresh-token")]
@@ -60,12 +55,12 @@ namespace TurfBooking.API.Controllers
                 await _authService
                     .RefreshTokenAsync(refreshToken);
 
-            if (result == null)
+            if (!result.IsSuccess)
             {
-                return Unauthorized();
+                return Unauthorized(ApiResponse<object>.FailureResponse(result.Error ?? "Invalid refresh token", null, 401));
             }
 
-            return Ok(result);
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(result.Value, "Token refreshed"));
         }
 
         [HttpPost("forgot-password")]
@@ -77,11 +72,12 @@ namespace TurfBooking.API.Controllers
                 await _authService
                     .ForgotPasswordAsync(request);
 
-            return Ok(new
+            if (!result.IsSuccess)
             {
-                Message = AuthMessages.ResetLinkSent,
-                Token = result
-            });
+                return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Forgot password request failed", null, 400));
+            }
+
+            return Ok(ApiResponse<string>.SuccessResponse(result.Value ?? string.Empty, AuthMessages.ResetLinkSent));
         }
 
         [HttpPost("reset-password")]
@@ -92,7 +88,12 @@ namespace TurfBooking.API.Controllers
                 await _authService
                     .ResetPasswordAsync(request);
 
-            return Ok(result);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Password reset failed", null, 400));
+            }
+
+            return Ok(ApiResponse<string>.SuccessResponse(result.Value ?? string.Empty, "Password reset successfully"));
         }
     }
 }
