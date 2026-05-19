@@ -271,3 +271,5 @@ app.MapControllers();
 
 // Run Application
 app.Run();
+
+public partial class Program { }
