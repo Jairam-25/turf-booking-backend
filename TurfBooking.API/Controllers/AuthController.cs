@@ -3,14 +3,14 @@ using Application.Common.Result;
 using Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Asp.Versioning;
 
 namespace TurfBooking.API.Controllers
 {
 
     [ApiController]
-
-    [Route("api/[controller]")]
-
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class AuthController(IAuthService authService) : ControllerBase
     {
         private readonly IAuthService _authService = authService;        

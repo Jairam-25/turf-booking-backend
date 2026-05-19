@@ -2,12 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
+using Asp.Versioning;
 using Application.Common.Result;
 
 namespace TurfBooking.API.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class SlotController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;

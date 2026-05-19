@@ -15,6 +15,7 @@ using System.Threading.RateLimiting;
 using Serilog;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
+using Asp.Versioning;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -217,6 +218,14 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+
+// Add API Versioning
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+});
 
 // Build App
 var app = builder.Build();
