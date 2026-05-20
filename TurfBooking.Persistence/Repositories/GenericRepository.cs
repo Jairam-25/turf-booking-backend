@@ -1,4 +1,4 @@
-﻿using Application.Interfaces;
+using Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
 
@@ -16,7 +16,7 @@ public class GenericRepository<T>
         _dbSet = context.Set<T>();
     }
 
-    public async Task<T?> GetByIdAsync(Guid id)
+    public async Task<T?> GetByIdAsync(int id)
         => await _dbSet.FindAsync(id);
 
     public async Task<IEnumerable<T>> GetAllAsync()

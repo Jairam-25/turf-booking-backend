@@ -1,11 +1,11 @@
-﻿namespace Application.Interfaces;
+namespace Application.Interfaces;
 
 public interface IGenericRepository<T>
     where T : class
 {
     Task<IEnumerable<T>> GetAllAsync();
 
-    Task<T?> GetByIdAsync(Guid id);
+    Task<T?> GetByIdAsync(int id);
 
     Task AddAsync(T entity);
 
