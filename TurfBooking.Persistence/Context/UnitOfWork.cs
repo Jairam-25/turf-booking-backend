@@ -17,17 +17,20 @@ namespace Persistence.Context
 
         public ISlotRepository Slots { get; }
 
-        public UnitOfWork(ApplicationDbContext context)
+        public UnitOfWork
+        (
+            ApplicationDbContext context,
+            IUserRepository users,
+            IBookingRepository bookings,
+            ITurfRepository turfs,
+            ISlotRepository slots
+        )
         {
             _context = context;
-
-            Users = new UserRepository(_context);
-
-            Bookings = new BookingRepository(_context);
-
-            Turfs = new TurfRepository(_context);
-
-            Slots = new SlotRepository(_context);
+            Users = users;
+            Bookings = bookings;
+            Turfs = turfs;
+            Slots = slots;
         }
 
         public async Task<int> SaveChangesAsync()

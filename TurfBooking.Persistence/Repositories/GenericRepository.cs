@@ -25,11 +25,17 @@ public class GenericRepository<T>
     public async Task AddAsync(T entity)
         => await _dbSet.AddAsync(entity);
 
-    public async Task Update(T entity)
-        => _dbSet.Update(entity);
+    public Task UpdateAsync(T entity)
+    {
+        _dbSet.Update(entity);
+        return Task.CompletedTask;
+    }
 
-    public async Task Delete(T entity)
-        => _dbSet.Remove(entity);
+    public Task DeleteAsync(T entity)
+    {
+        _dbSet.Remove(entity);
+        return Task.CompletedTask;
+    }
 
     public IQueryable<T> AsQueryable()
         => _dbSet.AsQueryable();

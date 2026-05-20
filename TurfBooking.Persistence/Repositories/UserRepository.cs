@@ -36,14 +36,6 @@ namespace Persistence.Repositories
                     (x.PhoneNumber != null && x.PhoneNumber.EndsWith(suffix)));
         }
 
-        public async Task<Turf?> ValidateIdAsync(int? id)
-        {
-            return await _context.Turfs
-            .FirstOrDefaultAsync(t =>
-                t.Id == id &&
-                !t.IsDeleted);
-        }
-
         public async Task<User?> GetByPasswordResetTokenAsync(
         string token)
         {

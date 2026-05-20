@@ -14,7 +14,5 @@ namespace Application.Interfaces
 
         Task<User?> GetByRefreshTokenAsync(
             string refreshToken);
-
-        Task<Turf?> ValidateIdAsync(int? id);
     }
 }

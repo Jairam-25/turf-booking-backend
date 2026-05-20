@@ -124,7 +124,7 @@ public class BookingController : ControllerBase
         // Free the slot so others can book it
         booking.Slot!.IsBooked = false;
 
-        await _unitOfWork.Bookings.Delete(booking);
+        await _unitOfWork.Bookings.DeleteAsync(booking);
 
         await _unitOfWork.SaveChangesAsync();
 

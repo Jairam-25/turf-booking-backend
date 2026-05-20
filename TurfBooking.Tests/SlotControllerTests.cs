@@ -3,6 +3,7 @@ using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
+using Persistence.Repositories;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,7 +23,13 @@ public class SlotControllerTests
             .Options;
 
         var context = new ApplicationDbContext(options);
-        var unitOfWork = new UnitOfWork(context);
+        var unitOfWork = new UnitOfWork(
+            context,
+            new UserRepository(context),
+            new BookingRepository(context),
+            new TurfRepository(context),
+            new SlotRepository(context)
+        );
 
         return (context, unitOfWork);
     }

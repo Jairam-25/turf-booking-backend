@@ -37,7 +37,13 @@ public class TurfServiceTests
             .Options;
 
         var context = new ApplicationDbContext(options);
-        var unitOfWork = new UnitOfWork(context);
+        var unitOfWork = new UnitOfWork(
+            context,
+            new UserRepository(context),
+            new BookingRepository(context),
+            new TurfRepository(context),
+            new SlotRepository(context)
+        );
 
         return (context, unitOfWork);
     }
@@ -88,9 +94,6 @@ public class TurfServiceTests
         await context.Turfs.AddAsync(turf);
         await context.SaveChangesAsync();
 
-        _mockUserRepository.Setup(x => x.ValidateIdAsync(turf.Id))
-            .ReturnsAsync(turf);
-
         // Act
         var result = await turfService.DeleteTurfAsync(turf.Id);
 
@@ -106,9 +109,6 @@ public class TurfServiceTests
         // Arrange
         var (context, unitOfWork) = CreateContextAndUnitOfWork();
         var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object);
-
-        _mockUserRepository.Setup(x => x.ValidateIdAsync(999))
-            .ReturnsAsync((Turf?)null);
 
         // Act
         var result = await turfService.DeleteTurfAsync(999);
