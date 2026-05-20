@@ -1,36 +1,36 @@
 using Application.Common.Messages;
+using Application.Common.Result;
 using Application.DTOs;
+using Application.Features.Auth.Commands;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Asp.Versioning;
 
 namespace TurfBooking.API.Controllers
 {
 
     [ApiController]
-
-    [Route("api/[controller]")]
-
-    public class AuthController(IAuthService authService) : ControllerBase
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    public class AuthController(IMediator mediator) : ControllerBase
     {
-        private readonly IAuthService _authService = authService;        
+        private readonly IMediator _mediator = mediator;
 
         [HttpPost("register")]
         [EnableRateLimiting("RegisterPolicy")]
         public async Task<IActionResult> Register(
             RegisterRequestDto request)
         {
-            var result =
-                await _authService.RegisterAsync(request);
+            var result = await _mediator.Send(
+                new RegisterCommand(request));
 
             if (!result.IsSuccess)
             {
-                return BadRequest(new
-                {
-                    message = result.Error ?? "Registration failed"
-                });
+                return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Registration failed", null, 400));
             }
 
-            return Ok(result);
+            return Ok(ApiResponse<string>.SuccessResponse(result.Value, "Registration successful"));
         }
 
         [HttpPost("login")]
@@ -38,61 +38,61 @@ namespace TurfBooking.API.Controllers
         public async Task<IActionResult> Login(
             LoginRequestDto request)
         {
-            var result =
-                await _authService.LoginAsync(request);
+            var result = await _mediator.Send(
+                new LoginCommand(request));
 
             if (!result.IsSuccess)
             {
-                return Unauthorized(new
-                {
-                    message = result.Error ?? AuthMessages.InvalidCredentials
-                });
+                return Unauthorized(ApiResponse<object>.FailureResponse(result.Error ?? AuthMessages.InvalidCredentials, null, 401));
             }
 
-            return Ok(result);
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(result.Value, "Login successful"));
         }
 
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken(
-            string refreshToken)
+            [FromBody] string refreshToken)
         {
-            var result =
-                await _authService
-                    .RefreshTokenAsync(refreshToken);
+            var result = await _mediator.Send(
+                new RefreshTokenCommand(refreshToken));
 
-            if (result == null)
+            if (!result.IsSuccess)
             {
-                return Unauthorized();
+                return Unauthorized(ApiResponse<object>.FailureResponse(result.Error ?? "Invalid refresh token", null, 401));
             }
 
-            return Ok(result);
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(result.Value, "Token refreshed"));
         }
 
         [HttpPost("forgot-password")]
         [EnableRateLimiting("ForgotPasswordPolicy")]
         public async Task<IActionResult> ForgotPassword(
-        ForgotPasswordRequestDto request)
+            ForgotPasswordRequestDto request)
         {
-            var result =
-                await _authService
-                    .ForgotPasswordAsync(request);
+            var result = await _mediator.Send(
+                new ForgotPasswordCommand(request));
 
-            return Ok(new
+            if (!result.IsSuccess)
             {
-                Message = AuthMessages.ResetLinkSent,
-                Token = result
-            });
+                return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Forgot password request failed", null, 400));
+            }
+
+            return Ok(ApiResponse<string>.SuccessResponse(result.Value ?? string.Empty, AuthMessages.ResetLinkSent));
         }
 
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword(
-        ResetPasswordRequestDto request)
+            ResetPasswordRequestDto request)
         {
-            var result =
-                await _authService
-                    .ResetPasswordAsync(request);
+            var result = await _mediator.Send(
+                new ResetPasswordCommand(request));
 
-            return Ok(result);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Password reset failed", null, 400));
+            }
+
+            return Ok(ApiResponse<string>.SuccessResponse(result.Value ?? string.Empty, "Password reset successfully"));
         }
     }
 }

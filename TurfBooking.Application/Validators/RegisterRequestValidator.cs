@@ -1,4 +1,4 @@
-﻿using Application.DTOs;
+using Application.DTOs;
 using FluentValidation;
 using System.Text.RegularExpressions;
 
@@ -20,7 +20,7 @@ public class RegisterRequestValidator
 
         RuleFor(x => x.PhoneNumber)
             .NotEmpty()
-            .Matches(@"^(\+91)?[0-9]{10}$")
+            .Matches(@"^(\+[0-9]+)?[0-9]{10}$")
             .WithMessage(
                 "Enter valid phone number");
 

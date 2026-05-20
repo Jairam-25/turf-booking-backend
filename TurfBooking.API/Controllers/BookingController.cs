@@ -4,12 +4,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
+using Asp.Versioning;
+using Application.Common.Result;
 using System.Security.Claims;
 
 namespace TurfBooking.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [Authorize]              // ← JWT token required for all endpoints
 public class BookingController : ControllerBase
 {
@@ -30,8 +33,7 @@ public class BookingController : ControllerBase
             ClaimTypes.NameIdentifier)?.Value;
 
         if (userIdClaim == null)
-            return Unauthorized(
-                new { message = "Invalid token" });
+            return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
 
         var userId = int.Parse(userIdClaim);
 
@@ -41,13 +43,11 @@ public class BookingController : ControllerBase
             .FirstOrDefaultAsync(s => s.Id == dto.SlotId);
 
         if (slot == null)
-            return NotFound(
-                new { message = "Slot not found" });
+            return NotFound(ApiResponse<object>.FailureResponse("Slot not found", null, 404));
 
         // Step 3 : Check if slot is already booked
         if (slot.IsBooked)
-            return BadRequest(
-                new { message = "Slot is already booked" });
+            return BadRequest(ApiResponse<object>.FailureResponse("Slot is already booked", null, 400));
 
         // Step 4 : Create the booking
         var booking = new Booking
@@ -64,9 +64,8 @@ public class BookingController : ControllerBase
 
         await _unitOfWork.SaveChangesAsync();
 
-        return Ok(new
+        var data = new
         {
-            message = "Slot booked successfully",
             bookingId = booking.Id,
             slotId = slot.Id,
             turfName = slot.Turf!.Name,
@@ -74,7 +73,9 @@ public class BookingController : ControllerBase
             startTime = slot.StartTime,
             endTime = slot.EndTime,
             bookedOn = booking.BookingDate
-        });
+        };
+
+        return Ok(ApiResponse<object>.SuccessResponse(data, "Slot booked successfully"));
     }
 
     // ── GET /api/booking/my ───────────────────────────────
@@ -101,7 +102,7 @@ public class BookingController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(bookings);
+        return Ok(ApiResponse<object>.SuccessResponse(bookings, "Bookings retrieved successfully"));
     }
 
     // ── DELETE /api/booking/{id}/cancel ───────────────────
@@ -118,8 +119,7 @@ public class BookingController : ControllerBase
                 b => b.Id == id && b.UserId == userId);
 
         if (booking == null)
-            return NotFound(
-                new { message = "Booking not found" });
+            return NotFound(ApiResponse<object>.FailureResponse("Booking not found", null, 404));
 
         // Free the slot so others can book it
         booking.Slot!.IsBooked = false;
@@ -128,6 +128,6 @@ public class BookingController : ControllerBase
 
         await _unitOfWork.SaveChangesAsync();
 
-        return Ok(new { message = "Booking cancelled successfully" });
+        return Ok(ApiResponse<string>.SuccessResponse(string.Empty, "Booking cancelled successfully"));
     }
 }

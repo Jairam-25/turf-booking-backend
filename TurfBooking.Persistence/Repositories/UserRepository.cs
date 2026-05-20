@@ -16,8 +16,24 @@ namespace Persistence.Repositories
 
         public async Task<User?> GetByEmailAsync(LoginRequestDto req)
         {
+            if (string.IsNullOrWhiteSpace(req.EmailOrPhone))
+                return null;
+
+            var input = req.EmailOrPhone.Trim();
+
+            // Extract the last 10 digits as suffix for robust matching
+            var suffix = input;
+            if (input.Length >= 10)
+            {
+                suffix = input.Substring(input.Length - 10);
+            }
+
             return await _context.Users
-                .FirstOrDefaultAsync(x => x.Email == req.EmailOrPhone || x.PhoneNumber == req.EmailOrPhone);
+                .FirstOrDefaultAsync(x => 
+                    x.Email == input || 
+                    x.PhoneNumber == input || 
+                    x.PhoneNumber == suffix || 
+                    (x.PhoneNumber != null && x.PhoneNumber.EndsWith(suffix)));
         }
 
         public async Task<Turf?> ValidateIdAsync(int? id)

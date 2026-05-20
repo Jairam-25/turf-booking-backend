@@ -4,4 +4,5 @@
   <Project Path="TurfBooking.Domain/Domain.csproj" />
   <Project Path="TurfBooking.Infrastructure/Infrastructure.csproj" />
   <Project Path="TurfBooking.Persistence/Persistence.csproj" />
+  <Project Path="TurfBooking.Tests/TurfBooking.Tests.csproj" />
 </Solution>

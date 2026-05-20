@@ -1,6 +1,5 @@
 using Application.Interfaces;
 using Domain.Entities;
-using Application.Interfaces;
 using Persistence.Repositories;
 
 namespace Persistence.Context
