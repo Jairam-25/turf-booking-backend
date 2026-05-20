@@ -188,6 +188,29 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         };
     }
 
+    public async Task<TurfResponseDto?> GetTurfByIdAsync(int id)
+    {
+        var turf = await _unitOfWork.Turfs.AsQueryable()
+            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+
+        if (turf == null)
+        {
+            _logger.LogWarning(
+                "Turf not found. Id: {Id}",
+                id);
+
+            return null;
+        }
+
+        return new TurfResponseDto
+        {
+            Id = turf.Id,
+            Name = turf.Name,
+            Location = turf.Location,
+            PricePerHour = turf.PricePerHour
+        };
+    }
+
     private async Task InvalidateTurfCacheAsync()
     {
         await _cache.RemoveAsync(
@@ -196,7 +219,8 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
 
     public async Task<bool> DeleteTurfAsync(int id)
     {
-        var turf = await _userRepository.ValidateIdAsync(id);
+        var turf = await _unitOfWork.Turfs.AsQueryable()
+            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
 
         if (turf == null)
         {

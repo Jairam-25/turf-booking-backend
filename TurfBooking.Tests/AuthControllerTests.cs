@@ -1,8 +1,11 @@
 using Application.Common.Messages;
 using Application.Common.Result;
 using Application.DTOs;
+using Application.Features.Auth.Commands;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Threading;
 using System.Threading.Tasks;
 using TurfBooking.API.Controllers;
 using Xunit;
@@ -11,13 +14,13 @@ namespace TurfBooking.Tests;
 
 public class AuthControllerTests
 {
-    private readonly Mock<IAuthService> _mockAuthService;
+    private readonly Mock<IMediator> _mockMediator;
     private readonly AuthController _controller;
 
     public AuthControllerTests()
     {
-        _mockAuthService = new Mock<IAuthService>();
-        _controller = new AuthController(_mockAuthService.Object);
+        _mockMediator = new Mock<IMediator>();
+        _controller = new AuthController(_mockMediator.Object);
     }
 
     [Fact]
@@ -26,7 +29,9 @@ public class AuthControllerTests
         // Arrange
         var request = new RegisterRequestDto { Email = "test@example.com", Password = "Password123!", ConfirmPassword = "Password123!", Name = "Test User", PhoneNumber = "1234567890" };
         var serviceResult = Result<string>.Success("User created successfully");
-        _mockAuthService.Setup(x => x.RegisterAsync(request)).ReturnsAsync(serviceResult);
+        _mockMediator
+            .Setup(m => m.Send(It.IsAny<RegisterCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serviceResult);
 
         // Act
         var response = await _controller.Register(request);
@@ -44,7 +49,9 @@ public class AuthControllerTests
         // Arrange
         var request = new RegisterRequestDto { Email = "test@example.com", Password = "Password123!", ConfirmPassword = "Password123!", Name = "Test User", PhoneNumber = "1234567890" };
         var serviceResult = Result<string>.Failure("Email already exists");
-        _mockAuthService.Setup(x => x.RegisterAsync(request)).ReturnsAsync(serviceResult);
+        _mockMediator
+            .Setup(m => m.Send(It.IsAny<RegisterCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serviceResult);
 
         // Act
         var response = await _controller.Register(request);
@@ -63,7 +70,9 @@ public class AuthControllerTests
         var request = new LoginRequestDto { EmailOrPhone = "test@example.com", Password = "Password123!" };
         var loginResponse = new LoginResponseDto { Token = "access_token", RefreshToken = "refresh_token" };
         var serviceResult = Result<LoginResponseDto>.Success(loginResponse);
-        _mockAuthService.Setup(x => x.LoginAsync(request)).ReturnsAsync(serviceResult);
+        _mockMediator
+            .Setup(m => m.Send(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serviceResult);
 
         // Act
         var response = await _controller.Login(request);
@@ -81,7 +90,9 @@ public class AuthControllerTests
         // Arrange
         var request = new LoginRequestDto { EmailOrPhone = "test@example.com", Password = "Password123!" };
         var serviceResult = Result<LoginResponseDto>.Failure(AuthMessages.InvalidCredentials);
-        _mockAuthService.Setup(x => x.LoginAsync(request)).ReturnsAsync(serviceResult);
+        _mockMediator
+            .Setup(m => m.Send(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serviceResult);
 
         // Act
         var response = await _controller.Login(request);
@@ -100,7 +111,9 @@ public class AuthControllerTests
         var token = "refresh_token";
         var loginResponse = new LoginResponseDto { Token = "new_access_token", RefreshToken = "new_refresh_token" };
         var serviceResult = Result<LoginResponseDto>.Success(loginResponse);
-        _mockAuthService.Setup(x => x.RefreshTokenAsync(token)).ReturnsAsync(serviceResult);
+        _mockMediator
+            .Setup(m => m.Send(It.IsAny<RefreshTokenCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serviceResult);
 
         // Act
         var response = await _controller.RefreshToken(token);
@@ -118,7 +131,9 @@ public class AuthControllerTests
         // Arrange
         var request = new ForgotPasswordRequestDto { Email = "test@example.com" };
         var serviceResult = Result<string>.Success("Reset link sent");
-        _mockAuthService.Setup(x => x.ForgotPasswordAsync(request)).ReturnsAsync(serviceResult);
+        _mockMediator
+            .Setup(m => m.Send(It.IsAny<ForgotPasswordCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serviceResult);
 
         // Act
         var response = await _controller.ForgotPassword(request);
@@ -136,7 +151,9 @@ public class AuthControllerTests
         // Arrange
         var request = new ResetPasswordRequestDto { Token = "token", NewPassword = "NewPassword123!" };
         var serviceResult = Result<string>.Success("Password reset successfully");
-        _mockAuthService.Setup(x => x.ResetPasswordAsync(request)).ReturnsAsync(serviceResult);
+        _mockMediator
+            .Setup(m => m.Send(It.IsAny<ResetPasswordCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serviceResult);
 
         // Act
         var response = await _controller.ResetPassword(request);

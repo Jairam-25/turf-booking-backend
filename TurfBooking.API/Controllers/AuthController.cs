@@ -1,6 +1,8 @@
 using Application.Common.Messages;
 using Application.Common.Result;
 using Application.DTOs;
+using Application.Features.Auth.Commands;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Asp.Versioning;
@@ -11,17 +13,17 @@ namespace TurfBooking.API.Controllers
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
-    public class AuthController(IAuthService authService) : ControllerBase
+    public class AuthController(IMediator mediator) : ControllerBase
     {
-        private readonly IAuthService _authService = authService;        
+        private readonly IMediator _mediator = mediator;
 
         [HttpPost("register")]
         [EnableRateLimiting("RegisterPolicy")]
         public async Task<IActionResult> Register(
             RegisterRequestDto request)
         {
-            var result =
-                await _authService.RegisterAsync(request);
+            var result = await _mediator.Send(
+                new RegisterCommand(request));
 
             if (!result.IsSuccess)
             {
@@ -36,8 +38,8 @@ namespace TurfBooking.API.Controllers
         public async Task<IActionResult> Login(
             LoginRequestDto request)
         {
-            var result =
-                await _authService.LoginAsync(request);
+            var result = await _mediator.Send(
+                new LoginCommand(request));
 
             if (!result.IsSuccess)
             {
@@ -49,11 +51,10 @@ namespace TurfBooking.API.Controllers
 
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken(
-            string refreshToken)
+            [FromBody] string refreshToken)
         {
-            var result =
-                await _authService
-                    .RefreshTokenAsync(refreshToken);
+            var result = await _mediator.Send(
+                new RefreshTokenCommand(refreshToken));
 
             if (!result.IsSuccess)
             {
@@ -66,11 +67,10 @@ namespace TurfBooking.API.Controllers
         [HttpPost("forgot-password")]
         [EnableRateLimiting("ForgotPasswordPolicy")]
         public async Task<IActionResult> ForgotPassword(
-        ForgotPasswordRequestDto request)
+            ForgotPasswordRequestDto request)
         {
-            var result =
-                await _authService
-                    .ForgotPasswordAsync(request);
+            var result = await _mediator.Send(
+                new ForgotPasswordCommand(request));
 
             if (!result.IsSuccess)
             {
@@ -82,11 +82,10 @@ namespace TurfBooking.API.Controllers
 
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword(
-        ResetPasswordRequestDto request)
+            ResetPasswordRequestDto request)
         {
-            var result =
-                await _authService
-                    .ResetPasswordAsync(request);
+            var result = await _mediator.Send(
+                new ResetPasswordCommand(request));
 
             if (!result.IsSuccess)
             {

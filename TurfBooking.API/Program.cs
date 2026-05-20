@@ -4,6 +4,8 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hangfire;
 using Infrastructure;
+using Infrastructure.Services;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -160,6 +162,15 @@ builder.Services
 builder.Services.AddPersistence(
     builder.Configuration);
 builder.Services.AddInfrastructure();
+
+builder.Services.AddMediatR(typeof(AuthService).Assembly);
+
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+});
 
 //Configure Jwt Settings
 builder.Services.Configure<JwtSettings>(

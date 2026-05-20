@@ -1,11 +1,14 @@
 using Application.Common.Result;
 using Application.DTOs;
+using Application.Features.Turf.Queries;
 using Application.Model;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Persistence.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using TurfBooking.API.Controllers;
 using Xunit;
@@ -14,13 +17,15 @@ namespace TurfBooking.Tests;
 
 public class TurfControllerTests
 {
+    private readonly Mock<IMediator> _mockMediator;
     private readonly Mock<ITurfService> _mockTurfService;
     private readonly TurfController _controller;
 
     public TurfControllerTests()
     {
+        _mockMediator = new Mock<IMediator>();
         _mockTurfService = new Mock<ITurfService>();
-        _controller = new TurfController(_mockTurfService.Object);
+        _controller = new TurfController(_mockMediator.Object, _mockTurfService.Object);
     }
 
     [Fact]
@@ -35,7 +40,9 @@ public class TurfControllerTests
             Page = 1,
             PageSize = 10
         };
-        _mockTurfService.Setup(x => x.GetAllTurfAsync(query)).ReturnsAsync(pagedResult);
+        _mockMediator
+            .Setup(m => m.Send(It.IsAny<GetAllTurfsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(pagedResult);
 
         // Act
         var response = await _controller.Get(query);
