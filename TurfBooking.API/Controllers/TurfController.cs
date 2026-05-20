@@ -3,12 +3,14 @@ using Application.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Interfaces;
+using Asp.Versioning;
 using Application.Common.Result;
 
 namespace TurfBooking.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class TurfController(ITurfService turfService) : ControllerBase
 {
     private readonly ITurfService _turfService = turfService;

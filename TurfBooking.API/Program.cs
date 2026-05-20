@@ -13,6 +13,9 @@ using TurfBooking.API.Middlewares;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Serilog;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using HealthChecks.UI.Client;
+using Asp.Versioning;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -82,6 +85,15 @@ builder.Services.AddHangfire(config =>
 
 // Added Hangfire background job server
 builder.Services.AddHangfireServer();
+
+// Register Health Checks
+builder.Services.AddHealthChecks()
+    .AddSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")!,
+        name: "sqlserver")
+    .AddRedis(
+        "localhost:6379",
+        name: "redis");
 
 // Define rate limiting policies
 builder.Services.AddRateLimiter(options =>
@@ -207,6 +219,14 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// Add API Versioning
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+});
+
 // Build App
 var app = builder.Build();
 
@@ -240,8 +260,16 @@ if (app.Environment.IsDevelopment())
     app.UseHangfireDashboard("/hangfire");
 }
 
+// Map Health Checks Endpoint
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
 // Map Controllers
 app.MapControllers();
 
 // Run Application
 app.Run();
+
+public partial class Program { }
