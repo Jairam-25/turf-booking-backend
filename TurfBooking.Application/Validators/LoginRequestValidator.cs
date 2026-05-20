@@ -1,4 +1,4 @@
-﻿using Application.DTOs;
+using Application.DTOs;
 using FluentValidation;
 using System.Text.RegularExpressions;
 
@@ -34,11 +34,11 @@ public class LoginRequestValidator
                 value,
                 @"^[^@\s]+@[^@\s]+\.[^@\s]+$");
 
-        // Phone validation
+        // Phone validation (allows optional country code like +91 or +1 followed by 10 digits)
         var isPhone =
             Regex.IsMatch(
                 value,
-                @"^[0-9]{10}$");
+                @"^(\+[0-9]+)?[0-9]{10}$");
 
         return isEmail || isPhone;
     }
