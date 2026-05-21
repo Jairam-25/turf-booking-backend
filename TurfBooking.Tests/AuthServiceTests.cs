@@ -8,11 +8,6 @@ using Hangfire.Storage;
 using Infrastructure.Services;
 using Microsoft.Extensions.Options;
 using Moq;
-using Persistence.Interfaces;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace TurfBooking.Tests;
 

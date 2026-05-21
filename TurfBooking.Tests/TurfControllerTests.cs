@@ -1,11 +1,11 @@
 using Application.Common.Result;
 using Application.DTOs;
 using Application.Features.Turf.Queries;
+using Application.Features.Turf.Commands;
 using Application.Model;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using Persistence.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -18,14 +18,12 @@ namespace TurfBooking.Tests;
 public class TurfControllerTests
 {
     private readonly Mock<IMediator> _mockMediator;
-    private readonly Mock<ITurfService> _mockTurfService;
     private readonly TurfController _controller;
 
     public TurfControllerTests()
     {
         _mockMediator = new Mock<IMediator>();
-        _mockTurfService = new Mock<ITurfService>();
-        _controller = new TurfController(_mockMediator.Object, _mockTurfService.Object);
+        _controller = new TurfController(_mockMediator.Object);
     }
 
     [Fact]
@@ -61,7 +59,7 @@ public class TurfControllerTests
         // Arrange
         var dto = new CreateTurfDto { Name = "New Turf", Location = "Uptown", PricePerHour = 150 };
         var responseDto = new TurfResponseDto { Id = 1, Name = "New Turf", Location = "Uptown", PricePerHour = 150 };
-        _mockTurfService.Setup(x => x.CreateTurfAsync(dto, It.IsAny<CancellationToken>())).ReturnsAsync(responseDto);
+        _mockMediator.Setup(x => x.Send(It.IsAny<CreateTurfCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(responseDto);
 
         // Act
         var response = await _controller.Create(dto);
@@ -77,7 +75,7 @@ public class TurfControllerTests
     public async Task Delete_WhenTurfExists_ReturnsOk()
     {
         // Arrange
-        _mockTurfService.Setup(x => x.DeleteTurfAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _mockMediator.Setup(x => x.Send(It.IsAny<DeleteTurfCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         // Act
         var response = await _controller.Delete(1);
@@ -93,7 +91,7 @@ public class TurfControllerTests
     public async Task Delete_WhenTurfDoesNotExist_ReturnsNotFound()
     {
         // Arrange
-        _mockTurfService.Setup(x => x.DeleteTurfAsync(999, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _mockMediator.Setup(x => x.Send(It.IsAny<DeleteTurfCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         // Act
         var response = await _controller.Delete(999);

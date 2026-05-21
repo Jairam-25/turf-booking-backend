@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
 using Asp.Versioning;
 using Application.Common.Result;
+using Application.Features.Slot.Queries;
+using MediatR;
+using System.Threading;
 
 namespace TurfBooking.API.Controllers
 {
@@ -12,11 +13,11 @@ namespace TurfBooking.API.Controllers
     [Route("api/v{version:apiVersion}/[controller]")]
     public class SlotController : ControllerBase
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMediator _mediator;
 
-        public SlotController(IUnitOfWork unitOfWork)
+        public SlotController(IMediator mediator)
         {
-            _unitOfWork = unitOfWork;
+            _mediator = mediator;
         }
 
         // GET /api/slot?turfId=11
@@ -24,22 +25,12 @@ namespace TurfBooking.API.Controllers
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetAvailableSlots(
-            int turfId)
+            int turfId, CancellationToken ct = default)
         {
-            var slots = await _unitOfWork.Slots.AsQueryable()
-                .Where(s => s.TurfId == turfId
-                            && !s.IsBooked)
-                .Select(s => new
-                {
-                    slotId = s.Id,
-                    startTime = s.StartTime,
-                    endTime = s.EndTime,
-                    turfId = s.TurfId
-                })
-                .ToListAsync();
-
-            return Ok(ApiResponse<object>.SuccessResponse(slots, "Slots retrieved successfully"));
+            var result = await _mediator.Send(new GetAvailableSlotsQuery(turfId), ct);
+            if (!result.IsSuccess)
+                return StatusCode(400, ApiResponse<object>.FailureResponse(result.Error, null, 400));
+            return Ok(ApiResponse<object>.SuccessResponse(result.Value, "Slots retrieved successfully"));
         }
     }
-
 }
