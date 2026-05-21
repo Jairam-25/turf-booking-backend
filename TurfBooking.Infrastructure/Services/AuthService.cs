@@ -2,6 +2,7 @@ using Application.Common.Constants;
 using Application.Common.Messages;
 using Application.Common.Settings;
 using Application.DTOs;
+using Mapster;
 using Application.Interfaces;
 using Domain.Entities;
 using Hangfire;
@@ -35,13 +36,8 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
         var hashedPassword =
             BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-        var user = new User
-        {
-            Name = request.Name,
-            Email = request.Email,
-            PhoneNumber = request.PhoneNumber,
-            Password = hashedPassword
-        };
+        var user = request.Adapt<User>();
+        user.Password = hashedPassword;
 
         await _userRepository.AddAsync(user);
 
@@ -111,16 +107,9 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
 
         await _unitOfWork.SaveChangesAsync();
 
-        var response = new LoginResponseDto
-        {
-            Name = user.Name,
-            Email = user.Email,
-            Number = user.PhoneNumber,
-            Role = user.Role,
-            Token = token,
-            // Return RAW token to client (not hashed)
-            RefreshToken = rawRefreshToken
-        };
+        var response = user.Adapt<LoginResponseDto>();
+        response.Token = token;
+        response.RefreshToken = rawRefreshToken;
 
         return Result<LoginResponseDto>
             .Success(response);
@@ -227,15 +216,9 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
 
         await _unitOfWork.SaveChangesAsync();
 
-        var response = new LoginResponseDto
-        {
-            Name = user.Name,
-            Email = user.Email,
-            Role = user.Role,
-            Token = newJwtToken,
-            // Send raw token back to client
-            RefreshToken = newRawRefreshToken
-        };
+        var response = user.Adapt<LoginResponseDto>();
+        response.Token = newJwtToken;
+        response.RefreshToken = newRawRefreshToken;
 
         return Result<LoginResponseDto>
             .Success(response);

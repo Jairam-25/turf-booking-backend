@@ -6,14 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
 using Persistence.Repositories;
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using TurfBooking.API.Controllers;
-using Xunit;
 
 namespace TurfBooking.Tests;
 
@@ -141,7 +136,7 @@ public class BookingControllerTests
         {
             count++;
             var bookingIdProperty = item.GetType().GetProperty("bookingId");
-            var bookingIdVal = (int)bookingIdProperty.GetValue(item);
+            var bookingIdVal = (int?)bookingIdProperty?.GetValue(item);
             Assert.Equal(500, bookingIdVal); // should only get booking for user 100
         }
         Assert.Equal(1, count);

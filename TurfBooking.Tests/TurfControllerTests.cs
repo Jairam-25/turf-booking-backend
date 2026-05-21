@@ -51,8 +51,8 @@ public class TurfControllerTests
         var okResult = Assert.IsType<OkObjectResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<PagedResult<TurfResponseDto>>>(okResult.Value);
         Assert.True(apiResponse.Success);
-        Assert.Equal(1, apiResponse.Data.TotalCount);
-        Assert.Equal("Golden Turf", apiResponse.Data.Items.First().Name);
+        Assert.Equal(1, apiResponse?.Data?.TotalCount);
+        Assert.Equal("Golden Turf", apiResponse?.Data?.Items.First().Name);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class TurfControllerTests
         var okResult = Assert.IsType<OkObjectResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<TurfResponseDto>>(okResult.Value);
         Assert.True(apiResponse.Success);
-        Assert.Equal("New Turf", apiResponse.Data.Name);
+        Assert.Equal("New Turf", apiResponse?.Data?.Name);
     }
 
     [Fact]

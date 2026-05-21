@@ -67,7 +67,7 @@ public class SlotControllerTests
             count++;
             // Use reflection or dynamic to assert properties of the anonymous type
             var idProperty = item.GetType().GetProperty("slotId");
-            var slotIdVal = (int)idProperty.GetValue(item);
+            var slotIdVal = (int?)idProperty?.GetValue(item);
             Assert.Equal(1, slotIdVal); // should only return slot 1
         }
         Assert.Equal(1, count);

@@ -18,6 +18,7 @@ using Serilog;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 using Asp.Versioning;
+using Mapster;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -162,6 +163,10 @@ builder.Services
 builder.Services.AddPersistence(
     builder.Configuration);
 builder.Services.AddInfrastructure();
+
+// Mapster Configuration
+builder.Services.AddMapster();
+TypeAdapterConfig.GlobalSettings.Scan(typeof(AuthService).Assembly);
 
 builder.Services.AddMediatR(typeof(AuthService).Assembly);
 

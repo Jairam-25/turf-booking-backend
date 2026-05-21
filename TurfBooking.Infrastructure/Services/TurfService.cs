@@ -1,5 +1,6 @@
-﻿using Application.Common.Messages;
+using Application.Common.Messages;
 using Application.DTOs;
+using Mapster;
 using Application.Interfaces;
 using Application.Model;
 using Domain.Entities;
@@ -93,13 +94,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         var items = await turfQuery
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(t => new TurfResponseDto
-            {
-                Id = t.Id,
-                Name = t.Name,
-                Location = t.Location,
-                PricePerHour = t.PricePerHour
-            })
+            .ProjectToType<TurfResponseDto>()
             .ToListAsync();
 
         _logger.LogInformation(
@@ -146,12 +141,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
 
     public async Task<TurfResponseDto> CreateTurfAsync(CreateTurfDto dto)
     {
-        var turf = new Turf
-        {
-            Name = dto.Name,
-            Location = dto.Location,
-            PricePerHour = dto.PricePerHour
-        };
+        var turf = dto.Adapt<Turf>();
 
         await _unitOfWork.Turfs.AddAsync(turf);
         await _unitOfWork.SaveChangesAsync();
@@ -179,13 +169,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
                 "until it expires.", turf.Id);
         }
 
-        return new TurfResponseDto
-        {
-            Id = turf.Id,
-            Name = turf.Name,
-            Location = turf.Location,
-            PricePerHour = turf.PricePerHour
-        };
+        return turf.Adapt<TurfResponseDto>();
     }
 
     public async Task<TurfResponseDto?> GetTurfByIdAsync(int id)
@@ -202,13 +186,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
             return null;
         }
 
-        return new TurfResponseDto
-        {
-            Id = turf.Id,
-            Name = turf.Name,
-            Location = turf.Location,
-            PricePerHour = turf.PricePerHour
-        };
+        return turf.Adapt<TurfResponseDto>();
     }
 
     private async Task InvalidateTurfCacheAsync()
