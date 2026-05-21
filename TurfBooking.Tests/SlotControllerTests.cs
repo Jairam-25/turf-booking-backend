@@ -60,14 +60,17 @@ public class SlotControllerTests
         var apiResponse = Assert.IsType<ApiResponse<object>>(okResult.Value);
         Assert.True(apiResponse.Success);
 
+        Assert.NotNull(apiResponse.Data);
         var dataList = Assert.IsAssignableFrom<IEnumerable>(apiResponse.Data);
         var count = 0;
         foreach (var item in dataList)
         {
+            Assert.NotNull(item);
             count++;
             // Use reflection or dynamic to assert properties of the anonymous type
             var idProperty = item.GetType().GetProperty("slotId");
-            var slotIdVal = (int?)idProperty?.GetValue(item);
+            Assert.NotNull(idProperty);
+            var slotIdVal = (int?)idProperty.GetValue(item);
             Assert.Equal(1, slotIdVal); // should only return slot 1
         }
         Assert.Equal(1, count);

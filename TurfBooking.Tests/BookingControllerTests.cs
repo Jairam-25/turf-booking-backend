@@ -130,13 +130,16 @@ public class BookingControllerTests
         var apiResponse = Assert.IsType<ApiResponse<object>>(okResult.Value);
         Assert.True(apiResponse.Success);
 
+        Assert.NotNull(apiResponse.Data);
         var dataList = Assert.IsAssignableFrom<IEnumerable>(apiResponse.Data);
         var count = 0;
         foreach (var item in dataList)
         {
+            Assert.NotNull(item);
             count++;
             var bookingIdProperty = item.GetType().GetProperty("bookingId");
-            var bookingIdVal = (int?)bookingIdProperty?.GetValue(item);
+            Assert.NotNull(bookingIdProperty);
+            var bookingIdVal = (int?)bookingIdProperty.GetValue(item);
             Assert.Equal(500, bookingIdVal); // should only get booking for user 100
         }
         Assert.Equal(1, count);

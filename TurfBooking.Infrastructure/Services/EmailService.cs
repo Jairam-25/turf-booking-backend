@@ -1,18 +1,52 @@
 using Application.Common.Settings;
 using Application.Interfaces;
 using MailKit.Net.Smtp;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
 
 namespace Infrastructure.Services;
 
 public class EmailService : IEmailService
 {
     private readonly EmailSettings _emailSettings;
-    public EmailService(IOptions<EmailSettings> emailSettings)
+    private readonly ILogger<EmailService> _logger;
+
+    // RETRY POLICY — Exponential Backoff
+    // Attempt 1: wait 2s, Attempt 2: wait 4s, Attempt 3: wait 8s
+    private readonly AsyncRetryPolicy _retryPolicy;
+
+    // CIRCUIT BREAKER — Stop retrying after 5 continuous failures
+    // Break for 1 minute, then allow one test request through
+    private static readonly AsyncCircuitBreakerPolicy _circuitBreaker =
+        Policy
+            .Handle<Exception>()
+            .CircuitBreakerAsync(
+                exceptionsAllowedBeforeBreaking: 5,
+                durationOfBreak: TimeSpan.FromMinutes(1));
+
+    public EmailService(
+        IOptions<EmailSettings> emailSettings,
+        ILogger<EmailService> logger)
     {
         _emailSettings = emailSettings.Value;
+        _logger = logger;
+
+        _retryPolicy = Policy
+            .Handle<Exception>()
+            .WaitAndRetryAsync(
+                retryCount: 3,
+                sleepDurationProvider: attempt =>
+                    TimeSpan.FromSeconds(Math.Pow(2, attempt)),
+                onRetry: (ex, delay, attempt, _) =>
+                    _logger.LogWarning(ex,
+                        "Email retry {Attempt} after {Delay}s",
+                        attempt, delay.TotalSeconds));
     }
+
     public async Task SendWelcomeEmailAsync(
         string toEmail,
         string userName)
@@ -30,28 +64,176 @@ public class EmailService : IEmailService
         email.Body = new TextPart("html")
         {
             Text = $@"
-                <h2>Welcome {userName}</h2>
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'/>
+    <title>Welcome to TurfXpert</title>
+</head>
 
-                <p>Your account has been created successfully.</p>
+<body style='margin:0; padding:0; background-color:#f4f6f9; font-family: Arial, sans-serif;'>
 
-                <p>Welcome to Turf Booking App.</p>
-            "
+    <table width='100%' cellpadding='0' cellspacing='0'
+           style='background-color:#f4f6f9; padding:40px 0;'>
+
+        <tr>
+            <td align='center'>
+
+                <table width='600' cellpadding='0' cellspacing='0'
+                       style='background-color:#ffffff;
+                              border-radius:10px;
+                              overflow:hidden;
+                              box-shadow:0 4px 12px rgba(0,0,0,0.08);'>
+
+                    <!-- Header -->
+                    <tr>
+                        <td style='background-color:#1a7a4a;
+                                   padding:30px 40px;
+                                   text-align:center;'>
+
+                            <h1 style='color:#ffffff;
+                                       margin:0;
+                                       font-size:28px;
+                                       letter-spacing:1px;'>
+
+                                ⚽ Welcome to TurfXpert
+                            </h1>
+
+                            <p style='color:#c8f5d8;
+                                      margin:8px 0 0;
+                                      font-size:14px;'>
+
+                                Your Game. Your Ground. Your Time.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style='padding:40px;'>
+
+                            <h2 style='color:#1a7a4a;
+                                       margin-top:0;'>
+
+                                Hi {userName}, 👋
+                            </h2>
+
+                            <p style='color:#555555;
+                                      font-size:15px;
+                                      line-height:1.8;'>
+
+                                Your account has been successfully created.
+                                You're now officially part of the TurfXpert community.
+                            </p>
+
+                            <p style='color:#555555;
+                                      font-size:15px;
+                                      line-height:1.8;'>
+
+                                You can now:
+                            </p>
+
+                            <ul style='color:#555555;
+                                       font-size:15px;
+                                       line-height:2;
+                                       padding-left:20px;'>
+
+                                <li>⚽ Discover nearby turfs</li>
+                                <li>📅 Book grounds instantly</li>
+                                <li>👥 Organize matches with friends</li>
+                                <li>🏟️ Manage your upcoming games easily</li>
+                            </ul>
+
+                            <!-- Highlight Box -->
+                            <table width='100%' cellpadding='0' cellspacing='0'
+                                   style='margin:25px 0;'>
+
+                                <tr>
+                                    <td style='background-color:#f0f8f4;
+                                               border-left:4px solid #1a7a4a;
+                                               padding:16px;
+                                               border-radius:6px;'>
+
+                                        <p style='margin:0;
+                                                  color:#1a7a4a;
+                                                  font-size:14px;
+                                                  line-height:1.7;'>
+
+                                            🚀 Start exploring available turfs
+                                            and book your next match in just a few clicks.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style='color:#555555;
+                                      font-size:14px;
+                                      line-height:1.8;'>
+
+                                We're excited to help you enjoy a smoother
+                                and faster turf booking experience.
+                            </p>
+
+                            <p style='color:#555555;
+                                      font-size:14px;
+                                      line-height:1.8;'>
+
+                                See you on the field! 🏆
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style='padding:0 40px;'>
+                            <hr style='border:none;
+                                       border-top:1px solid #eeeeee;' />
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style='padding:24px 40px;
+                                   text-align:center;'>
+
+                            <p style='color:#aaaaaa;
+                                      font-size:12px;
+                                      margin:0 0 8px;'>
+
+                                Need help? Contact us at
+                                <a href='mailto:support@turfbook.com'
+                                   style='color:#1a7a4a;
+                                          text-decoration:none;'>
+
+                                    support@turfbook.com
+                                </a>
+                            </p>
+
+                            <p style='color:#cccccc;
+                                      font-size:11px;
+                                      margin:0;'>
+
+                                © {DateTime.Now.Year} TurfXpert.
+                                All rights reserved.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+
+    </table>
+
+</body>
+</html>"
         };
 
-        using var smtp = new SmtpClient();
-
-        await smtp.ConnectAsync(
-            "smtp.gmail.com",
-            587,
-            false);
-
-        await smtp.AuthenticateAsync(
-            _emailSettings.Email,
-            _emailSettings.Password);
-
-        await smtp.SendAsync(email);
-
-        await smtp.DisconnectAsync(true);
+        await SendEmailWithResilienceAsync(email);
     }
 
     public async Task SendPasswordResetEmailAsync(string toEmail, string userName, string resetToken)
@@ -59,7 +241,7 @@ public class EmailService : IEmailService
         var email = new MimeMessage();
         email.From.Add(MailboxAddress.Parse(_emailSettings.Email));
         email.To.Add(MailboxAddress.Parse(toEmail));
-        email.Subject = "Reset Your Password – TurfBook";
+        email.Subject = "Reset Your Password – TurfXpert";
         var resetLink = _emailSettings.ResetPasswordUrl + resetToken;
 
         email.Body = new TextPart("html")
@@ -82,7 +264,7 @@ public class EmailService : IEmailService
                             <!-- Header -->
                             <tr>
                                 <td style='background-color:#1a7a4a; padding: 30px 40px; text-align:center;'>
-                                    <h1 style='color:#ffffff; margin:0; font-size:26px; letter-spacing:1px;'>⚽ TurfBook</h1>
+                                    <h1 style='color:#ffffff; margin:0; font-size:26px; letter-spacing:1px;'>⚽ TurfXpert</h1>
                                     <p style='color:#a8e6c1; margin:6px 0 0; font-size:13px;'>Your Game. Your Ground. Your Time.</p>
                                 </td>
                             </tr>
@@ -92,7 +274,7 @@ public class EmailService : IEmailService
                                 <td style='padding: 40px 40px 20px;'>
                                     <h2 style='color:#1a7a4a; margin:0 0 10px;'>Hi {userName},</h2>
                                     <p style='color:#555555; font-size:15px; line-height:1.7; margin:0 0 20px;'>
-                                        We received a request to reset the password for your <strong>TurfBook</strong> account.
+                                        We received a request to reset the password for your <strong>TurfXpert</strong> account.
                                         If you made this request, click the button below to set a new password.
                                     </p>
 
@@ -156,7 +338,7 @@ public class EmailService : IEmailService
                                         </a>
                                     </p>
                                     <p style='color:#cccccc; font-size:11px; margin:0;'>
-                                        © {DateTime.Now.Year} TurfBook. All rights reserved.<br/>
+                                        © {DateTime.Now.Year} TurfXpert. All rights reserved.<br/>
                                         You're receiving this email because a password reset was requested for your account.
                                     </p>
                                 </td>
@@ -171,10 +353,31 @@ public class EmailService : IEmailService
         </html>"
         };
 
-        using var smtp = new SmtpClient();
-        await smtp.ConnectAsync("smtp.gmail.com", 587, false);
-        await smtp.AuthenticateAsync(_emailSettings.Email, _emailSettings.Password);
-        await smtp.SendAsync(email);
-        await smtp.DisconnectAsync(true);
+        await SendEmailWithResilienceAsync(email);
+    }
+
+    // CORE — Send email wrapped in Retry + Circuit Breaker
+    private async Task SendEmailWithResilienceAsync(MimeMessage email)
+    {
+        // Wrap retry INSIDE circuit breaker
+        // Circuit breaker checks first — if open, throws immediately
+        // If closed/half-open, retry policy handles transient failures
+        await _circuitBreaker.ExecuteAsync(async () =>
+        {
+            await _retryPolicy.ExecuteAsync(async () =>
+            {
+                using var smtp = new SmtpClient();
+                await smtp.ConnectAsync("smtp.gmail.com", 587, false);
+                await smtp.AuthenticateAsync(
+                    _emailSettings.Email,
+                    _emailSettings.Password);
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+
+                _logger.LogInformation(
+                    "Email sent successfully to {To}",
+                    email.To);
+            });
+        });
     }
 }
