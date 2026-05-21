@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Persistence.Interfaces;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -57,7 +58,7 @@ public class AuthServiceTests
     {
         // Arrange
         var existingUser = new User { Email = "existing@example.com" };
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.Is<LoginRequestDto>(r => r.EmailOrPhone == "existing@example.com")))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.Is<LoginRequestDto>(r => r.EmailOrPhone == "existing@example.com"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingUser);
 
         var registerRequest = new RegisterRequestDto
@@ -81,7 +82,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_WithNewEmail_ReturnsSuccess()
     {
         // Arrange
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>()))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
         var registerRequest = new RegisterRequestDto
@@ -99,8 +100,8 @@ public class AuthServiceTests
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(AuthMessages.RegisterSuccess, result.Value);
-        _mockUserRepository.Verify(x => x.AddAsync(It.Is<User>(u => u.Email == "new@example.com")), Times.Once);
-        _mockUnitOfWork.Verify(x => x.SaveChangesAsync(), Times.Once);
+        _mockUserRepository.Verify(x => x.AddAsync(It.Is<User>(u => u.Email == "new@example.com"), It.IsAny<CancellationToken>()), Times.Once);
+        _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -116,7 +117,7 @@ public class AuthServiceTests
             IsLocked = false
         };
 
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>()))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         var loginRequest = new LoginRequestDto
@@ -132,7 +133,7 @@ public class AuthServiceTests
         Assert.False(result.IsSuccess);
         Assert.Equal(AuthMessages.IncorrectEmailOrPassword, result.Error);
         Assert.Equal(1, user.FailedLoginAttempts); // Failed attempt incremented
-        _mockUnitOfWork.Verify(x => x.SaveChangesAsync(), Times.Once);
+        _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -153,7 +154,7 @@ public class AuthServiceTests
             IsLocked = false
         };
 
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>()))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         var loginRequest = new LoginRequestDto
@@ -176,7 +177,7 @@ public class AuthServiceTests
 
         Assert.Equal(0, user.FailedLoginAttempts); // Resets failed login attempts
         Assert.False(user.IsLocked);
-        _mockUnitOfWork.Verify(x => x.SaveChangesAsync(), Times.Once);
+        _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -190,7 +191,7 @@ public class AuthServiceTests
             LockoutEnd = DateTime.UtcNow.AddMinutes(5)
         };
 
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>()))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         var loginRequest = new LoginRequestDto

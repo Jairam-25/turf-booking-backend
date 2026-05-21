@@ -16,22 +16,22 @@ public class GenericRepository<T>
         _dbSet = context.Set<T>();
     }
 
-    public async Task<T?> GetByIdAsync(int id)
-        => await _dbSet.FindAsync(id);
+    public async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        => await _dbSet.FindAsync(new object[] { id }, cancellationToken);
 
-    public async Task<IEnumerable<T>> GetAllAsync()
-        => await _dbSet.ToListAsync();
+    public async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default)
+        => await _dbSet.ToListAsync(cancellationToken);
 
-    public async Task AddAsync(T entity)
-        => await _dbSet.AddAsync(entity);
+    public async Task AddAsync(T entity, CancellationToken cancellationToken = default)
+        => await _dbSet.AddAsync(entity, cancellationToken);
 
-    public Task UpdateAsync(T entity)
+    public Task UpdateAsync(T entity, CancellationToken cancellationToken = default)
     {
         _dbSet.Update(entity);
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(T entity)
+    public Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
     {
         _dbSet.Remove(entity);
         return Task.CompletedTask;

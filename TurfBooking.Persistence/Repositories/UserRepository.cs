@@ -14,7 +14,7 @@ namespace Persistence.Repositories
         {
         }
 
-        public async Task<User?> GetByEmailAsync(LoginRequestDto req)
+        public async Task<User?> GetByEmailAsync(LoginRequestDto req, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(req.EmailOrPhone))
                 return null;
@@ -33,23 +33,23 @@ namespace Persistence.Repositories
                     x.Email == input || 
                     x.PhoneNumber == input || 
                     x.PhoneNumber == suffix || 
-                    (x.PhoneNumber != null && x.PhoneNumber.EndsWith(suffix)));
+                    (x.PhoneNumber != null && x.PhoneNumber.EndsWith(suffix)), cancellationToken);
         }
 
         public async Task<User?> GetByPasswordResetTokenAsync(
-        string token)
+        string token, CancellationToken cancellationToken = default)
         {
             return await _context.Users
                 .FirstOrDefaultAsync(x =>
-                    x.PasswordResetToken == token);
+                    x.PasswordResetToken == token, cancellationToken);
         }
 
         public async Task<User?> GetByRefreshTokenAsync(
-            string refreshToken)
+            string refreshToken, CancellationToken cancellationToken = default)
         {
             return await _context.Users
                 .FirstOrDefaultAsync(x =>
-                    x.RefreshToken == refreshToken);
+                    x.RefreshToken == refreshToken, cancellationToken);
         }
     }
 }

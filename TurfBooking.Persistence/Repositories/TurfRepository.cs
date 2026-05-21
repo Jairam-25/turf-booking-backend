@@ -11,10 +11,10 @@ namespace Persistence.Repositories
         {
         }
 
-        public async Task<Turf?> ValidateIdAsync(int? id)
+        public async Task<Turf?> ValidateIdAsync(int? id, CancellationToken cancellationToken = default)
         {
             return await _context.Turfs
-                .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+                .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted, cancellationToken);
         }
     }
 }

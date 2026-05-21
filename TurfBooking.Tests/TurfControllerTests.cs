@@ -61,7 +61,7 @@ public class TurfControllerTests
         // Arrange
         var dto = new CreateTurfDto { Name = "New Turf", Location = "Uptown", PricePerHour = 150 };
         var responseDto = new TurfResponseDto { Id = 1, Name = "New Turf", Location = "Uptown", PricePerHour = 150 };
-        _mockTurfService.Setup(x => x.CreateTurfAsync(dto)).ReturnsAsync(responseDto);
+        _mockTurfService.Setup(x => x.CreateTurfAsync(dto, It.IsAny<CancellationToken>())).ReturnsAsync(responseDto);
 
         // Act
         var response = await _controller.Create(dto);
@@ -77,7 +77,7 @@ public class TurfControllerTests
     public async Task Delete_WhenTurfExists_ReturnsOk()
     {
         // Arrange
-        _mockTurfService.Setup(x => x.DeleteTurfAsync(1)).ReturnsAsync(true);
+        _mockTurfService.Setup(x => x.DeleteTurfAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         // Act
         var response = await _controller.Delete(1);
@@ -93,7 +93,7 @@ public class TurfControllerTests
     public async Task Delete_WhenTurfDoesNotExist_ReturnsNotFound()
     {
         // Arrange
-        _mockTurfService.Setup(x => x.DeleteTurfAsync(999)).ReturnsAsync(false);
+        _mockTurfService.Setup(x => x.DeleteTurfAsync(999, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         // Act
         var response = await _controller.Delete(999);

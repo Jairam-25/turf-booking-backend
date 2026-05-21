@@ -21,7 +21,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
     private readonly IUserRepository _userRepository = userRepository;
 
     public async Task<PagedResult<TurfResponseDto>> GetAllTurfAsync(
-        TurfQueryParameters query)
+        TurfQueryParameters query, CancellationToken cancellationToken = default)
     {
         var cacheKey =
             $"{CachePrefix}" +
@@ -34,7 +34,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         // Try Redis first
         try
         {
-            var cached = await _cache.GetStringAsync(cacheKey);
+            var cached = await _cache.GetStringAsync(cacheKey, cancellationToken);
 
             if (cached != null)
             {
@@ -89,13 +89,13 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
             _ => turfQuery.OrderBy(t => t.Id)
         };
 
-        var totalCount = await turfQuery.CountAsync();
+        var totalCount = await turfQuery.CountAsync(cancellationToken);
 
         var items = await turfQuery
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .ProjectToType<TurfResponseDto>()
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         _logger.LogInformation(
             "Turf list fetched from DB. " +
@@ -120,7 +120,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
                 {
                     AbsoluteExpirationRelativeToNow =
                         TimeSpan.FromMinutes(5)
-                });
+                }, cancellationToken);
 
             _logger.LogInformation(
                 "Turf list cached in Redis for 5 minutes. Key: {Key}",
@@ -139,12 +139,12 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         return result;
     }
 
-    public async Task<TurfResponseDto> CreateTurfAsync(CreateTurfDto dto)
+    public async Task<TurfResponseDto> CreateTurfAsync(CreateTurfDto dto, CancellationToken cancellationToken = default)
     {
         var turf = dto.Adapt<Turf>();
 
-        await _unitOfWork.Turfs.AddAsync(turf);
-        await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.Turfs.AddAsync(turf, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
             "New turf created. Id: {Id}, Name: {Name}, Location: {Location}",
@@ -153,7 +153,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         // Invalidate cache
         try
         {
-            await InvalidateTurfCacheAsync();
+            await InvalidateTurfCacheAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Turf cache invalidated after new turf created. " +
@@ -172,10 +172,10 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         return turf.Adapt<TurfResponseDto>();
     }
 
-    public async Task<TurfResponseDto?> GetTurfByIdAsync(int id)
+    public async Task<TurfResponseDto?> GetTurfByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var turf = await _unitOfWork.Turfs.AsQueryable()
-            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted, cancellationToken);
 
         if (turf == null)
         {
@@ -189,16 +189,16 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         return turf.Adapt<TurfResponseDto>();
     }
 
-    private async Task InvalidateTurfCacheAsync()
+    private async Task InvalidateTurfCacheAsync(CancellationToken cancellationToken = default)
     {
         await _cache.RemoveAsync(
-            $"{CachePrefix}p1_ps10_localall_min0_max0_sortid_asc");
+            $"{CachePrefix}p1_ps10_localall_min0_max0_sortid_asc", cancellationToken);
     }
 
-    public async Task<bool> DeleteTurfAsync(int id)
+    public async Task<bool> DeleteTurfAsync(int id, CancellationToken cancellationToken = default)
     {
         var turf = await _unitOfWork.Turfs.AsQueryable()
-            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted, cancellationToken);
 
         if (turf == null)
         {
@@ -213,7 +213,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         turf.IsDeleted = true;
         turf.DeletedAt = DateTime.UtcNow;
 
-        await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
             "Turf soft deleted successfully. Id: {Id}",
@@ -222,7 +222,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         // Invalidate Cache
         try
         {
-            await InvalidateTurfCacheAsync();
+            await InvalidateTurfCacheAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Turf cache invalidated after delete. Id: {Id}",

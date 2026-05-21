@@ -23,7 +23,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
     private readonly IEmailService _emailService = emailService;
 
-    public async Task<Result<string>> RegisterAsync(RegisterRequestDto request)
+    public async Task<Result<string>> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
     {
         var existingUser = await _userRepository
             .GetByEmailAsync(new LoginRequestDto { EmailOrPhone = request.Email });
@@ -55,7 +55,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     }
 
     public async Task<Result<LoginResponseDto>>
-     LoginAsync(LoginRequestDto req)
+     LoginAsync(LoginRequestDto req, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByEmailAsync(req);
 
@@ -116,7 +116,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     }
 
     // Forget password
-    public async Task<Result<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request)
+    public async Task<Result<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository
             .GetByEmailAsync(new LoginRequestDto { EmailOrPhone = request.Email });
@@ -149,7 +149,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     // ResetPasswordAsync
 
     public async Task<Result<string>> ResetPasswordAsync(
-        ResetPasswordRequestDto request)
+        ResetPasswordRequestDto request, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository
             .GetByPasswordResetTokenAsync(
@@ -183,7 +183,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     // RefreshTokenAsync
 
     public async Task<Result<LoginResponseDto>>
-        RefreshTokenAsync(string refreshToken)
+        RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         // Hash the incoming token to find matching DB record
         var hashedToken = HashToken(refreshToken);
