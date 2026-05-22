@@ -3,6 +3,7 @@ using Application.Common.Settings;
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
+using FluentAssertions;
 using Hangfire;
 using Hangfire.Storage;
 using Infrastructure.Services;
@@ -48,6 +49,10 @@ public class AuthServiceTests
         JobStorage.Current = mockStorage.Object;
     }
 
+    // ──────────────────────────────────────────────
+    // RegisterAsync Tests
+    // ──────────────────────────────────────────────
+
     [Fact]
     public async Task RegisterAsync_WithExistingEmail_ReturnsFailure()
     {
@@ -69,8 +74,8 @@ public class AuthServiceTests
         var result = await _authService.RegisterAsync(registerRequest);
 
         // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Equal(AuthMessages.EmailAlreadyExists, result.Error);
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be(AuthMessages.EmailAlreadyExists);
     }
 
     [Fact]
@@ -93,11 +98,48 @@ public class AuthServiceTests
         var result = await _authService.RegisterAsync(registerRequest);
 
         // Assert
-        Assert.True(result.IsSuccess);
-        Assert.Equal(AuthMessages.RegisterSuccess, result.Value);
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(AuthMessages.RegisterSuccess);
         _mockUserRepository.Verify(x => x.AddAsync(It.Is<User>(u => u.Email == "new@example.com"), It.IsAny<CancellationToken>()), Times.Once);
         _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task RegisterAsync_PasswordIsHashedBeforeSaving()
+    {
+        // Arrange
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        User? capturedUser = null;
+        _mockUserRepository.Setup(x => x.AddAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .Callback<User, CancellationToken>((user, _) => capturedUser = user);
+
+        var registerRequest = new RegisterRequestDto
+        {
+            Name = "Hash Test User",
+            Email = "hash@example.com",
+            PhoneNumber = "9876543210",
+            Password = "Password123!",
+            ConfirmPassword = "Password123!"
+        };
+
+        // Act
+        await _authService.RegisterAsync(registerRequest);
+
+        // Assert — password stored must NOT be the plain text
+        capturedUser.Should().NotBeNull();
+        capturedUser!.Password.Should().NotBe("Password123!",
+            "the plain-text password must never be stored directly");
+
+        // Assert — the stored hash must verify correctly against the original password
+        BCrypt.Net.BCrypt.Verify("Password123!", capturedUser.Password)
+            .Should().BeTrue("the stored password hash must match the original password");
+    }
+
+    // ──────────────────────────────────────────────
+    // LoginAsync Tests
+    // ──────────────────────────────────────────────
 
     [Fact]
     public async Task LoginAsync_WithWrongPassword_ReturnsFailure()
@@ -125,9 +167,9 @@ public class AuthServiceTests
         var result = await _authService.LoginAsync(loginRequest);
 
         // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Equal(AuthMessages.IncorrectEmailOrPassword, result.Error);
-        Assert.Equal(1, user.FailedLoginAttempts); // Failed attempt incremented
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be(AuthMessages.IncorrectEmailOrPassword);
+        user.FailedLoginAttempts.Should().Be(1, "failed attempt should be incremented");
         _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -162,16 +204,16 @@ public class AuthServiceTests
         var result = await _authService.LoginAsync(loginRequest);
 
         // Assert
-        Assert.True(result.IsSuccess);
-        Assert.NotNull(result.Value);
-        Assert.Equal("Test User", result.Value.Name);
-        Assert.Equal("test@example.com", result.Value.Email);
-        Assert.Equal("User", result.Value.Role);
-        Assert.NotEmpty(result.Value.Token);
-        Assert.NotEmpty(result.Value.RefreshToken);
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
+        result.Value!.Name.Should().Be("Test User");
+        result.Value.Email.Should().Be("test@example.com");
+        result.Value.Role.Should().Be("User");
+        result.Value.Token.Should().NotBeNullOrEmpty();
+        result.Value.RefreshToken.Should().NotBeNullOrEmpty();
 
-        Assert.Equal(0, user.FailedLoginAttempts); // Resets failed login attempts
-        Assert.False(user.IsLocked);
+        user.FailedLoginAttempts.Should().Be(0, "successful login resets failed attempts");
+        user.IsLocked.Should().BeFalse();
         _mockUnitOfWork.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -199,7 +241,7 @@ public class AuthServiceTests
         var result = await _authService.LoginAsync(loginRequest);
 
         // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Equal(AuthMessages.LoginMaxAttempt, result.Error);
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be(AuthMessages.LoginMaxAttempt);
     }
 }

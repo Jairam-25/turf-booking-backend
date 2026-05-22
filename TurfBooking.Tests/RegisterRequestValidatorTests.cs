@@ -1,5 +1,6 @@
 using Application.DTOs;
 using Application.Validators;
+using FluentAssertions;
 using Xunit;
 
 namespace TurfBooking.Tests;
@@ -25,7 +26,7 @@ public class RegisterRequestValidatorTests
         var result = _validator.Validate(request);
 
         // Assert
-        Assert.True(result.IsValid);
+        result.IsValid.Should().BeTrue();
     }
 
     [Theory]
@@ -49,8 +50,8 @@ public class RegisterRequestValidatorTests
         var result = _validator.Validate(request);
 
         // Assert
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.PropertyName == nameof(request.Email));
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(request.Email));
     }
 
     [Theory]
@@ -75,8 +76,8 @@ public class RegisterRequestValidatorTests
         var result = _validator.Validate(request);
 
         // Assert
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.PropertyName == nameof(request.Password));
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(request.Password));
     }
 
     [Fact]
@@ -96,7 +97,55 @@ public class RegisterRequestValidatorTests
         var result = _validator.Validate(request);
 
         // Assert
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.PropertyName == nameof(request.ConfirmPassword));
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(request.ConfirmPassword));
+    }
+
+    [Theory]
+    [InlineData("")] // empty
+    [InlineData("AB")] // too short (< 3 chars)
+    public void Validator_WithInvalidName_Fails(string invalidName)
+    {
+        // Arrange
+        var request = new RegisterRequestDto
+        {
+            Name = invalidName,
+            Email = "john.doe@example.com",
+            PhoneNumber = "9876543210",
+            Password = "Password123!",
+            ConfirmPassword = "Password123!"
+        };
+
+        // Act
+        var result = _validator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(request.Name));
+    }
+
+    [Theory]
+    [InlineData("12345")] // too short
+    [InlineData("12345678901")] // too long (11 digits)
+    [InlineData("abcdefghij")] // letters, not digits
+    [InlineData("")] // empty
+    public void Validator_WithInvalidPhoneNumber_Fails(string invalidPhone)
+    {
+        // Arrange
+        var request = new RegisterRequestDto
+        {
+            Name = "John Doe",
+            Email = "john.doe@example.com",
+            PhoneNumber = invalidPhone,
+            Password = "Password123!",
+            ConfirmPassword = "Password123!"
+        };
+
+        // Act
+        var result = _validator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(request.PhoneNumber));
     }
 }
