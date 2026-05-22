@@ -1,6 +1,8 @@
 using Application.Interfaces;
+using Domain.Specifications;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
+using Persistence.Specifications;
 
 namespace Persistence.Repositories;
 
@@ -14,6 +16,11 @@ public class GenericRepository<T>
     {
         _context = context;
         _dbSet = context.Set<T>();
+    }
+
+    public async Task<IEnumerable<T>> FindAsync(Specification<T> spec, CancellationToken cancellationToken = default)
+    {
+        return await SpecificationEvaluator<T>.GetQuery(_dbSet.AsQueryable(), spec).ToListAsync(cancellationToken);
     }
 
     public async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default)

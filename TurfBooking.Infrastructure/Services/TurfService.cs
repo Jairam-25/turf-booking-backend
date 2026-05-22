@@ -4,10 +4,12 @@ using Mapster;
 using Application.Interfaces;
 using Application.Model;
 using Domain.Entities;
+using Domain.Specifications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Persistence.Interfaces;
+using Persistence.Specifications;
 using System.Text.Json;
 
 namespace Infrastructure.Services;
@@ -64,17 +66,16 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         var turfQuery = _unitOfWork.Turfs.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query.Location))
-            turfQuery = turfQuery.Where(t =>
-                t.Location.ToLower()
-                    .Contains(query.Location.ToLower()));
+        {
+            var locationSpec = new TurfByLocationSpec(query.Location);
+            turfQuery = SpecificationEvaluator<Turf>.GetQuery(turfQuery, locationSpec);
+        }
 
-        if (query.MinPrice.HasValue)
-            turfQuery = turfQuery.Where(t =>
-                t.PricePerHour >= query.MinPrice.Value);
-
-        if (query.MaxPrice.HasValue)
-            turfQuery = turfQuery.Where(t =>
-                t.PricePerHour <= query.MaxPrice.Value);
+        if (query.MinPrice.HasValue || query.MaxPrice.HasValue)
+        {
+            var priceRangeSpec = new TurfByPriceRangeSpec(query.MinPrice, query.MaxPrice);
+            turfQuery = SpecificationEvaluator<Turf>.GetQuery(turfQuery, priceRangeSpec);
+        }
 
         turfQuery = query.SortBy?.ToLower() switch
         {
