@@ -20,6 +20,8 @@ namespace TurfBooking.Tests
     {
         public Mock<IEmailService> EmailServiceMock { get; } = new();
         
+        private readonly string _dbName = Guid.NewGuid().ToString();
+        
         private static readonly Mock<JobStorage> _mockStorage = new();
         private static readonly Mock<IStorageConnection> _mockConnection = new();
 
@@ -46,7 +48,7 @@ namespace TurfBooking.Tests
 
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("TurfBookingIntegrationTestDb");
+                    options.UseInMemoryDatabase(_dbName);
                 });
 
                 // 2. Replace Redis Distributed Cache with Memory Distributed Cache
