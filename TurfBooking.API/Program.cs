@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 using Asp.Versioning;
 using Mapster;
+using Infrastructure.Hubs;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -37,7 +38,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "TurfBooking API",
+        Title = "TurfXpert API",
         Version = "v1"
     });
 
@@ -177,6 +178,9 @@ builder.Services.AddApiVersioning(options =>
     options.ReportApiVersions = true;
 });
 
+// SignalR
+builder.Services.AddSignalR();
+
 //Configure Jwt Settings
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("JwtSettings"));
@@ -188,9 +192,10 @@ builder.Services.AddCors(options =>
         "AllowAngular",
         policy =>
         {
-            policy.AllowAnyOrigin()
+policy.WithOrigins("http://localhost:4200")
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod()
+                  .AllowCredentials();
         });
 });
 
@@ -284,6 +289,9 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 
 // Map Controllers
 app.MapControllers();
+
+// Map SignalR hubs
+app.MapHub<SlotHub>("/hubs/slots");
 
 // Run Application
 app.Run();

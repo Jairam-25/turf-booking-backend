@@ -26,12 +26,20 @@ public class TurfServiceTests
     private readonly Mock<IDistributedCache> _mockCache;
     private readonly Mock<ILogger<TurfService>> _mockLogger;
     private readonly Mock<IUserRepository> _mockUserRepository;
+    private readonly Mock<ISlotService> _mockSlotService;
 
     public TurfServiceTests()
     {
         _mockCache = new Mock<IDistributedCache>();
         _mockLogger = new Mock<ILogger<TurfService>>();
         _mockUserRepository = new Mock<IUserRepository>();
+        _mockSlotService = new Mock<ISlotService>();
+
+        // Slot generation is a no-op in unit tests
+        _mockSlotService
+            .Setup(s => s.GenerateSlotsForTurfAsync(
+                It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
     private (ApplicationDbContext Context, UnitOfWork UnitOfWork) CreateContextAndUnitOfWork()
@@ -61,7 +69,7 @@ public class TurfServiceTests
     {
         // Arrange
         var (context, unitOfWork) = CreateContextAndUnitOfWork();
-        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object);
+        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object, _mockSlotService.Object);
 
         var dto = new CreateTurfDto
         {
@@ -94,7 +102,7 @@ public class TurfServiceTests
     {
         // Arrange
         var (context, unitOfWork) = CreateContextAndUnitOfWork();
-        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object);
+        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object, _mockSlotService.Object);
 
         var turf = new Turf
         {
@@ -120,7 +128,7 @@ public class TurfServiceTests
     {
         // Arrange
         var (context, unitOfWork) = CreateContextAndUnitOfWork();
-        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object);
+        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object, _mockSlotService.Object);
 
         // Act
         var result = await turfService.DeleteTurfAsync(999);
@@ -138,7 +146,7 @@ public class TurfServiceTests
     {
         // Arrange
         var (context, unitOfWork) = CreateContextAndUnitOfWork();
-        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object);
+        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object, _mockSlotService.Object);
 
         var turfs = new List<Turf>
         {
@@ -179,7 +187,7 @@ public class TurfServiceTests
     {
         // Arrange
         var (context, unitOfWork) = CreateContextAndUnitOfWork();
-        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object);
+        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object, _mockSlotService.Object);
 
         // Prepare cached data
         var cachedResult = new PagedResult<TurfResponseDto>
@@ -236,7 +244,7 @@ public class TurfServiceTests
     {
         // Arrange
         var (context, unitOfWork) = CreateContextAndUnitOfWork();
-        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object);
+        var turfService = new TurfService(unitOfWork, _mockCache.Object, _mockLogger.Object, _mockUserRepository.Object, _mockSlotService.Object);
 
         // Seed DB with turf data
         var turfs = new List<Turf>

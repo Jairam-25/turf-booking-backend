@@ -1,17 +1,21 @@
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Hubs;
 
 namespace Infrastructure.Services
 {
     public class BookingService : IBookingService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IHubContext<SlotHub> _hubContext;
 
-        public BookingService(IUnitOfWork unitOfWork)
+        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext)
         {
             _unitOfWork = unitOfWork;
+            _hubContext = hubContext;
         }
 
         public async Task<Result<object>> BookSlotAsync(CreateBookingDto dto, int userId, CancellationToken ct = default)
@@ -37,6 +41,21 @@ namespace Infrastructure.Services
             slot.IsBooked = true;
             await _unitOfWork.Bookings.AddAsync(booking, ct);
             await _unitOfWork.SaveChangesAsync(ct);
+
+            // Notify connected clients viewing this turf that a slot was booked
+            try
+            {
+                await _hubContext.Clients
+                    .Group($"turf_{slot.TurfId}")
+                    .SendAsync("SlotBooked", new {
+                        slotId = slot.Id,
+                        isBooked = true
+                    });
+            }
+            catch
+            {
+                // If SignalR notification fails, don't break the booking flow
+            }
 
             var data = new
             {
