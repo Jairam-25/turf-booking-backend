@@ -1,5 +1,6 @@
 using Application.DTOs;
 using Application.Model;
+using MediatR;
 using Domain.Entities;
 using FluentAssertions;
 using Infrastructure.Services;
@@ -48,7 +49,8 @@ public class TurfServiceTests
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        var context = new ApplicationDbContext(options);
+        var mockMediator = new Mock<IMediator>();
+        var context = new ApplicationDbContext(options, mockMediator.Object);
         var unitOfWork = new UnitOfWork(
             context,
             new UserRepository(context),

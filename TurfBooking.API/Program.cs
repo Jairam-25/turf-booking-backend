@@ -1,25 +1,25 @@
 using Application.Common.Settings;
 using Application.Validators;
+using Asp.Versioning;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hangfire;
+using HealthChecks.UI.Client;
 using Infrastructure;
+using Infrastructure.Hubs;
 using Infrastructure.Services;
+using Mapster;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Persistence;
-using System.Text;
-using TurfBooking.API.Middlewares;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
 using Serilog;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using HealthChecks.UI.Client;
-using Asp.Versioning;
-using Mapster;
-using Infrastructure.Hubs;
+using System.Text;
+using System.Threading.RateLimiting;
+using TurfBooking.API.Middlewares;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -192,10 +192,10 @@ builder.Services.AddCors(options =>
         "AllowAngular",
         policy =>
         {
-policy.WithOrigins("http://localhost:4200")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
+            policy.WithOrigins("http://localhost:4200")
+                              .AllowAnyHeader()
+                              .AllowAnyMethod()
+                              .AllowCredentials();
         });
 });
 

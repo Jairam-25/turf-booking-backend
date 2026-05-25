@@ -38,6 +38,14 @@ namespace Infrastructure.Services
                 BookingDate = System.DateTime.UtcNow
             };
 
+            // Add domain event
+            booking.AddDomainEvent(new Domain.Events.BookingCreatedEvent(
+                booking.Id,
+                booking.UserId,
+                booking.SlotId,
+                booking.BookingDate
+            ));
+
             slot.IsBooked = true;
             await _unitOfWork.Bookings.AddAsync(booking, ct);
             await _unitOfWork.SaveChangesAsync(ct);
