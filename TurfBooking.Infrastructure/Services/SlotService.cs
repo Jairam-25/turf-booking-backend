@@ -29,14 +29,30 @@ namespace Infrastructure.Services
 
         public async Task<Result<IEnumerable<SlotResponseDto>>> GetAvailableSlotsAsync(int turfId, CancellationToken ct = default)
         {
+            var today = DateTime.UtcNow.Date;
+            
+            // Check if there are slots generated for today onwards
+            var hasSlots = await _unitOfWork.Slots.AsQueryable()
+                .AnyAsync(s => s.TurfId == turfId && s.StartTime >= today, ct);
+                
+            if (!hasSlots)
+            {
+                // Generate 7 days of slots for this turf
+                for (int d = 0; d < 7; d++)
+                {
+                    await GenerateSlotsForTurfAsync(turfId, today.AddDays(d), ct);
+                }
+            }
+
             var slots = await _unitOfWork.Slots.AsQueryable()
-                .Where(s => s.TurfId == turfId && !s.IsBooked)
+                .Where(s => s.TurfId == turfId)
                 .Select(s => new SlotResponseDto
                 {
                     SlotId = s.Id,
                     StartTime = s.StartTime,
                     EndTime = s.EndTime,
-                    TurfId = s.TurfId
+                    TurfId = s.TurfId,
+                    IsBooked = s.IsBooked
                 })
                 .ToListAsync(ct);
 
