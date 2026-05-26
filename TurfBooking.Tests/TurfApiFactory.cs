@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Application.Interfaces;
 using Hangfire;
 using Hangfire.Storage;
@@ -19,7 +15,9 @@ namespace TurfBooking.Tests
     public class TurfApiFactory : WebApplicationFactory<Program>
     {
         public Mock<IEmailService> EmailServiceMock { get; } = new();
-        
+
+        private readonly string _dbName = Guid.NewGuid().ToString();
+
         private static readonly Mock<JobStorage> _mockStorage = new();
         private static readonly Mock<IStorageConnection> _mockConnection = new();
 
@@ -46,7 +44,7 @@ namespace TurfBooking.Tests
 
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("TurfBookingIntegrationTestDb");
+                    options.UseInMemoryDatabase(_dbName);
                 });
 
                 // 2. Replace Redis Distributed Cache with Memory Distributed Cache
@@ -65,7 +63,7 @@ namespace TurfBooking.Tests
                 {
                     services.Remove(emailServiceDescriptor);
                 }
-                
+
                 EmailServiceMock.Setup(e => e.SendWelcomeEmailAsync(It.IsAny<string>(), It.IsAny<string>()))
                     .Returns(Task.CompletedTask);
                 EmailServiceMock.Setup(e => e.SendPasswordResetEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
