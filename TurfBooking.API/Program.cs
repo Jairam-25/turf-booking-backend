@@ -19,6 +19,8 @@ using Persistence;
 using Serilog;
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
+using OpenTelemetry.Trace;
 using TurfBooking.API.Middlewares;
 
 Log.Logger = new LoggerConfiguration()
@@ -33,6 +35,28 @@ builder.Host.UseSerilog();
 
 // Add Services
 builder.Services.AddControllers();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+
+// Register OpenTelemetry
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .AddSource("TurfBooking.API")
+        .AddAspNetCoreInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation()
+        .AddRedisInstrumentation()
+        .AddConsoleExporter());
+
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -255,6 +279,8 @@ var app = builder.Build();
 
 // Global Exception Middleware
 app.UseMiddleware<ExceptionMiddleware>();
+
+app.UseResponseCompression();
 
 // Swagger
 if (app.Environment.IsDevelopment())

@@ -7,6 +7,7 @@ using Application.Features.Booking.Commands;
 using Application.Features.Booking.Queries;
 using MediatR;
 using System.Security.Claims;
+using System.Diagnostics;
 
 namespace TurfBooking.API.Controllers;
 
@@ -16,6 +17,7 @@ namespace TurfBooking.API.Controllers;
 [Authorize]
 public class BookingController : ControllerBase
 {
+    private static readonly ActivitySource _activity = new("TurfBooking.API");
     private readonly IMediator _mediator;
 
     public BookingController(IMediator mediator)
@@ -34,6 +36,10 @@ public class BookingController : ControllerBase
             return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
         
         var userId = int.Parse(userIdClaim);
+
+        using var span = _activity.StartActivity("BookSlot");
+        span?.SetTag("slotId", dto.SlotId);
+        span?.SetTag("userId", userId);
 
         var result = await _mediator.Send(new BookSlotCommand(dto, userId), ct);
         if (!result.IsSuccess)
