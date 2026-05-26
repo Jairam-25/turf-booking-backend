@@ -88,7 +88,7 @@ public class EmailService : IEmailService
 
                     <!-- Header -->
                     <tr>
-                        <td style='background-color:#1a7a4a;
+                        <td style='background-color:#7b39fc;
                                    padding:30px 40px;
                                    text-align:center;'>
 
@@ -100,7 +100,7 @@ public class EmailService : IEmailService
                                 ⚽ Welcome to TurfXpert
                             </h1>
 
-                            <p style='color:#c8f5d8;
+                            <p style='color:#e0d4ff;
                                       margin:8px 0 0;
                                       font-size:14px;'>
 
@@ -113,7 +113,7 @@ public class EmailService : IEmailService
                     <tr>
                         <td style='padding:40px;'>
 
-                            <h2 style='color:#1a7a4a;
+                            <h2 style='color:#7b39fc;
                                        margin-top:0;'>
 
                                 Hi {userName}, 👋
@@ -150,13 +150,13 @@ public class EmailService : IEmailService
                                    style='margin:25px 0;'>
 
                                 <tr>
-                                    <td style='background-color:#f0f8f4;
-                                               border-left:4px solid #1a7a4a;
+                                    <td style='background-color:#f3e8ff;
+                                               border-left:4px solid #7b39fc;
                                                padding:16px;
                                                border-radius:6px;'>
 
                                         <p style='margin:0;
-                                                  color:#1a7a4a;
+                                                  color:#7b39fc;
                                                   font-size:14px;
                                                   line-height:1.7;'>
 
@@ -204,7 +204,7 @@ public class EmailService : IEmailService
 
                                 Need help? Contact us at
                                 <a href='mailto:support@turfbook.com'
-                                   style='color:#1a7a4a;
+                                   style='color:#7b39fc;
                                           text-decoration:none;'>
 
                                     support@turfbook.com
@@ -228,6 +228,7 @@ public class EmailService : IEmailService
         </tr>
 
     </table>
+
 
 </body>
 </html>"
@@ -263,16 +264,16 @@ public class EmailService : IEmailService
 
                             <!-- Header -->
                             <tr>
-                                <td style='background-color:#1a7a4a; padding: 30px 40px; text-align:center;'>
+                                <td style='background-color:#7b39fc; padding: 30px 40px; text-align:center;'>
                                     <h1 style='color:#ffffff; margin:0; font-size:26px; letter-spacing:1px;'>⚽ TurfXpert</h1>
-                                    <p style='color:#a8e6c1; margin:6px 0 0; font-size:13px;'>Your Game. Your Ground. Your Time.</p>
+                                    <p style='color:#e0d4ff; margin:6px 0 0; font-size:13px;'>Your Game. Your Ground. Your Time.</p>
                                 </td>
                             </tr>
 
                             <!-- Body -->
                             <tr>
                                 <td style='padding: 40px 40px 20px;'>
-                                    <h2 style='color:#1a7a4a; margin:0 0 10px;'>Hi {userName},</h2>
+                                    <h2 style='color:#7b39fc; margin:0 0 10px;'>Hi {userName},</h2>
                                     <p style='color:#555555; font-size:15px; line-height:1.7; margin:0 0 20px;'>
                                         We received a request to reset the password for your <strong>TurfXpert</strong> account.
                                         If you made this request, click the button below to set a new password.
@@ -283,7 +284,7 @@ public class EmailService : IEmailService
                                         <tr>
                                             <td align='center' style='padding: 20px 0;'>
                                                 <a href='{resetLink}'
-                                                   style='background-color:#1a7a4a; color:#ffffff; text-decoration:none;
+                                                   style='background-color:#7b39fc; color:#ffffff; text-decoration:none;
                                                           padding:14px 36px; border-radius:6px; font-size:16px;
                                                           font-weight:bold; display:inline-block; letter-spacing:0.5px;'>
                                                     🔑 Reset My Password
@@ -295,8 +296,8 @@ public class EmailService : IEmailService
                                     <p style='color:#555555; font-size:14px; line-height:1.7;'>
                                         Or copy and paste this link into your browser:
                                     </p>
-                                    <p style='background:#f0f8f4; padding:12px 16px; border-radius:6px; font-size:13px;
-                                              color:#1a7a4a; word-break:break-all; border-left: 4px solid #1a7a4a;'>
+                                    <p style='background:#f3e8ff; padding:12px 16px; border-radius:6px; font-size:13px;
+                                              color:#7b39fc; word-break:break-all; border-left: 4px solid #7b39fc;'>
                                         {resetLink}
                                     </p>
 
@@ -333,13 +334,105 @@ public class EmailService : IEmailService
                                 <td style='padding: 24px 40px; text-align:center;'>
                                     <p style='color:#aaaaaa; font-size:12px; margin:0 0 8px;'>
                                         Need help? Contact us at
-                                        <a href='mailto:support@turfbook.com' style='color:#1a7a4a; text-decoration:none;'>
+                                        <a href='mailto:support@turfbook.com' style='color:#7b39fc; text-decoration:none;'>
                                             support@turfbook.com
                                         </a>
                                     </p>
                                     <p style='color:#cccccc; font-size:11px; margin:0;'>
                                         © {DateTime.Now.Year} TurfXpert. All rights reserved.<br/>
                                         You're receiving this email because a password reset was requested for your account.
+                                    </p>
+                                </td>
+                            </tr>
+
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+        </body>
+        </html>"
+        };
+
+        await SendEmailWithResilienceAsync(email);
+    }
+
+    public async Task SendBookingCancellationEmailAsync(string toEmail, string userName, string turfName, DateTime bookingDate, string reason)
+    {
+        var email = new MimeMessage();
+        email.From.Add(MailboxAddress.Parse(_emailSettings.Email));
+        email.To.Add(MailboxAddress.Parse(toEmail));
+        email.Subject = "Booking Cancelled – TurfXpert";
+
+        email.Body = new TextPart("html")
+        {
+            Text = $@"
+        <!DOCTYPE html>
+        <html lang='en'>
+        <head>
+            <meta charset='UTF-8' />
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'/>
+            <title>Booking Cancelled</title>
+        </head>
+        <body style='margin:0; padding:0; background-color:#f4f6f9; font-family: Arial, sans-serif;'>
+
+            <table width='100%' cellpadding='0' cellspacing='0' style='background-color:#f4f6f9; padding: 40px 0;'>
+                <tr>
+                    <td align='center'>
+                        <table width='600' cellpadding='0' cellspacing='0' style='background-color:#ffffff; border-radius:10px; overflow:hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);'>
+
+                            <!-- Header -->
+                            <tr>
+                                <td style='background-color:#7b39fc; padding: 30px 40px; text-align:center;'>
+                                    <h1 style='color:#ffffff; margin:0; font-size:26px; letter-spacing:1px;'>⚽ TurfXpert</h1>
+                                    <p style='color:#e0d4ff; margin:6px 0 0; font-size:13px;'>Booking Cancellation Notice</p>
+                                </td>
+                            </tr>
+
+                            <!-- Body -->
+                            <tr>
+                                <td style='padding: 40px 40px 20px;'>
+                                    <h2 style='color:#7b39fc; margin:0 0 10px;'>Hi {userName},</h2>
+                                    <p style='color:#555555; font-size:15px; line-height:1.7; margin:0 0 20px;'>
+                                        Your booking for <strong>{turfName}</strong> on <strong>{bookingDate:f}</strong> has been cancelled.
+                                    </p>
+
+                                    <!-- Reason Box -->
+                                    <table width='100%' cellpadding='0' cellspacing='0' style='margin: 24px 0;'>
+                                        <tr>
+                                            <td style='background-color:#f3e8ff; border-left:4px solid #7b39fc; padding:14px 16px; border-radius:4px;'>
+                                                <p style='margin:0; font-size:14px; color:#5b21b6;'>
+                                                    <strong>Reason for cancellation:</strong><br/>
+                                                    {reason}
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <p style='color:#555555; font-size:14px; line-height:1.7;'>
+                                        If this cancellation was a mistake, or if you wish to book another slot, please visit our website to make a new booking.
+                                    </p>
+                                </td>
+                            </tr>
+
+                            <!-- Divider -->
+                            <tr>
+                                <td style='padding: 0 40px;'>
+                                    <hr style='border:none; border-top:1px solid #eeeeee;' />
+                                </td>
+                            </tr>
+
+                            <!-- Footer -->
+                            <tr>
+                                <td style='padding: 24px 40px; text-align:center;'>
+                                    <p style='color:#aaaaaa; font-size:12px; margin:0 0 8px;'>
+                                        Need help? Contact us at
+                                        <a href='mailto:support@turfbook.com' style='color:#7b39fc; text-decoration:none;'>
+                                            support@turfbook.com
+                                        </a>
+                                    </p>
+                                    <p style='color:#cccccc; font-size:11px; margin:0;'>
+                                        © {DateTime.Now.Year} TurfXpert. All rights reserved.
                                     </p>
                                 </td>
                             </tr>
@@ -381,3 +474,4 @@ public class EmailService : IEmailService
         });
     }
 }
+

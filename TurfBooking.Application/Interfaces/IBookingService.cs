@@ -9,6 +9,6 @@ namespace Application.Interfaces
     {
         Task<Result<object>> BookSlotAsync(CreateBookingDto dto, int userId, CancellationToken ct = default);
         Task<Result<object>> GetMyBookingsAsync(int userId, CancellationToken ct = default);
-        Task<Result<string>> CancelBookingAsync(int bookingId, int userId, CancellationToken ct = default);
+        Task<Result<string>> CancelBookingAsync(int bookingId, int userId, string reason, CancellationToken ct = default);
     }
 }

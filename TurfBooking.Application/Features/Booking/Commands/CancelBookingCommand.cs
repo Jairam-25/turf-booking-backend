@@ -3,5 +3,5 @@ using MediatR;
 
 namespace Application.Features.Booking.Commands
 {
-    public sealed record CancelBookingCommand(int BookingId, int UserId) : IRequest<Result<string>>;
+    public sealed record CancelBookingCommand(int BookingId, int UserId, string Reason) : IRequest<Result<string>>;
 }

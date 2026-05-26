@@ -114,11 +114,11 @@ public class BookingControllerTests
         SetupAuthenticatedUser(_controller, "100");
 
         _mockMediator
-            .Setup(m => m.Send(It.Is<CancelBookingCommand>(c => c.BookingId == 500 && c.UserId == 100), It.IsAny<CancellationToken>()))
+            .Setup(m => m.Send(It.Is<CancelBookingCommand>(c => c.BookingId == 500 && c.UserId == 100 && c.Reason == "Change of plans"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<string>.Success("Booking cancelled successfully"));
 
         // Act
-        var response = await _controller.Cancel(500);
+        var response = await _controller.Cancel(500, "Change of plans");
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(response);

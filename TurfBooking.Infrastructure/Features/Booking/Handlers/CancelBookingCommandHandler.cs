@@ -18,7 +18,7 @@ namespace Infrastructure.Features.Booking.Handlers
 
         public async Task<Result<string>> Handle(CancelBookingCommand request, CancellationToken cancellationToken)
         {
-            return await _bookingService.CancelBookingAsync(request.BookingId, request.UserId, cancellationToken);
+            return await _bookingService.CancelBookingAsync(request.BookingId, request.UserId, request.Reason, cancellationToken);
         }
     }
 }

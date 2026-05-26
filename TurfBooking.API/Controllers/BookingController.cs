@@ -62,14 +62,14 @@ public class BookingController : ControllerBase
 
     // ── DELETE /api/booking/{id} ───────────────────────────
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Cancel(int id, CancellationToken ct = default)
+    public async Task<IActionResult> Cancel(int id, [FromQuery] string reason, CancellationToken ct = default)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userIdClaim == null)
             return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
 
         var userId = int.Parse(userIdClaim);
-        var result = await _mediator.Send(new CancelBookingCommand(id, userId), ct);
+        var result = await _mediator.Send(new CancelBookingCommand(id, userId, reason), ct);
         if (!result.IsSuccess)
         {
             var statusCode = result.Error == "Booking not found" ? 404 : 400;

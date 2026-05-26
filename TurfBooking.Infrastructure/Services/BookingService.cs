@@ -11,11 +11,13 @@ namespace Infrastructure.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHubContext<SlotHub> _hubContext;
+        private readonly IEmailService _emailService;
 
-        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext)
+        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _hubContext = hubContext;
+            _emailService = emailService;
         }
 
         public async Task<Result<object>> BookSlotAsync(CreateBookingDto dto, int userId, CancellationToken ct = default)
@@ -100,10 +102,12 @@ namespace Infrastructure.Services
             return Result<object>.Success(bookings);
         }
 
-        public async Task<Result<string>> CancelBookingAsync(int bookingId, int userId, CancellationToken ct = default)
+        public async Task<Result<string>> CancelBookingAsync(int bookingId, int userId, string reason, CancellationToken ct = default)
         {
             var booking = await _unitOfWork.Bookings.AsQueryable()
                 .Include(b => b.Slot)
+                .ThenInclude(s => s.Turf)
+                .Include(b => b.User)
                 .FirstOrDefaultAsync(b => b.Id == bookingId && b.UserId == userId, ct);
 
             if (booking == null)
@@ -115,6 +119,23 @@ namespace Infrastructure.Services
 
             await _unitOfWork.Bookings.DeleteAsync(booking, ct);
             await _unitOfWork.SaveChangesAsync(ct);
+
+            if (booking.User != null && !string.IsNullOrEmpty(booking.User.Email) && booking.Slot != null && booking.Slot.Turf != null)
+            {
+                try
+                {
+                    await _emailService.SendBookingCancellationEmailAsync(
+                        booking.User.Email,
+                        booking.User.Name,
+                        booking.Slot.Turf.Name,
+                        booking.BookingDate,
+                        reason);
+                }
+                catch
+                {
+                    // If email fails, don't break cancellation flow
+                }
+            }
 
             return Result<string>.Success("Booking cancelled successfully");
         }
