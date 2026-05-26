@@ -5,4 +5,5 @@
   <Project Path="TurfBooking.Infrastructure/Infrastructure.csproj" />
   <Project Path="TurfBooking.Persistence/Persistence.csproj" />
   <Project Path="TurfBooking.Tests/TurfBooking.Tests.csproj" />
+  <Project Path="TurfBooking.LoadBalancer/TurfBooking.LoadBalancer.csproj" />
 </Solution>
