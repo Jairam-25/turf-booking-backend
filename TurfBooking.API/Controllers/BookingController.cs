@@ -1,132 +1,86 @@
 using Application.DTOs;
-using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
 using Asp.Versioning;
 using Application.Common.Result;
+using Application.Features.Booking.Commands;
+using Application.Features.Booking.Queries;
+using MediatR;
 using System.Security.Claims;
+using System.Diagnostics;
 
 namespace TurfBooking.API.Controllers;
 
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-[Authorize]              // ← JWT token required for all endpoints
+[Authorize]
 public class BookingController : ControllerBase
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private static readonly ActivitySource _activity = new("TurfBooking.API");
+    private readonly IMediator _mediator;
 
-    public BookingController(IUnitOfWork unitOfWork)
+    public BookingController(IMediator mediator)
     {
-        _unitOfWork = unitOfWork;
+        _mediator = mediator;
     }
 
     // ── POST /api/booking ─────────────────────────────────
     [HttpPost]
     public async Task<IActionResult> BookSlot(
-        CreateBookingDto dto)
+        CreateBookingDto dto,
+        CancellationToken ct = default)
     {
-        // Step 1 : Get logged-in user Id from JWT token
-        var userIdClaim = User.FindFirst(
-            ClaimTypes.NameIdentifier)?.Value;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null)
+            return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
+        
+        var userId = int.Parse(userIdClaim);
 
+        using var span = _activity.StartActivity("BookSlot");
+        span?.SetTag("slotId", dto.SlotId);
+        span?.SetTag("userId", userId);
+
+        var result = await _mediator.Send(new BookSlotCommand(dto, userId), ct);
+        if (!result.IsSuccess)
+        {
+            var statusCode = result.Error == "Slot not found" ? 404 : 400;
+            return StatusCode(statusCode, ApiResponse<object>.FailureResponse(result.Error, null, statusCode));
+        }
+        return Ok(ApiResponse<object>.SuccessResponse(result.Value, "Slot booked successfully"));
+    }
+
+    // ── GET /api/booking/my ───────────────────────────────
+    [HttpGet("my")]
+    public async Task<IActionResult> MyBookings(CancellationToken ct = default)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userIdClaim == null)
             return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
 
         var userId = int.Parse(userIdClaim);
-
-        // Step 2 : Check if slot exists
-        var slot = await _unitOfWork.Slots.AsQueryable()
-            .Include(s => s.Turf)
-            .FirstOrDefaultAsync(s => s.Id == dto.SlotId);
-
-        if (slot == null)
-            return NotFound(ApiResponse<object>.FailureResponse("Slot not found", null, 404));
-
-        // Step 3 : Check if slot is already booked
-        if (slot.IsBooked)
-            return BadRequest(ApiResponse<object>.FailureResponse("Slot is already booked", null, 400));
-
-        // Step 4 : Create the booking
-        var booking = new Booking
-        {
-            UserId = userId,
-            SlotId = dto.SlotId,
-            BookingDate = DateTime.UtcNow
-        };
-
-        // Step 5 : Mark slot as booked
-        slot.IsBooked = true;
-
-        await _unitOfWork.Bookings.AddAsync(booking);
-
-        await _unitOfWork.SaveChangesAsync();
-
-        var data = new
-        {
-            bookingId = booking.Id,
-            slotId = slot.Id,
-            turfName = slot.Turf!.Name,
-            location = slot.Turf.Location,
-            startTime = slot.StartTime,
-            endTime = slot.EndTime,
-            bookedOn = booking.BookingDate
-        };
-
-        return Ok(ApiResponse<object>.SuccessResponse(data, "Slot booked successfully"));
+        var result = await _mediator.Send(new GetMyBookingsQuery(userId), ct);
+        if (!result.IsSuccess)
+            return StatusCode(400, ApiResponse<object>.FailureResponse(result.Error, null, 400));
+            
+        return Ok(ApiResponse<object>.SuccessResponse(result.Value, "Bookings retrieved successfully"));
     }
 
-    // ── GET /api/booking/my ───────────────────────────────
-    // View all bookings of logged-in user
-    [HttpGet("my")]
-    public async Task<IActionResult> MyBookings()
+    // ── DELETE /api/booking/{id} ───────────────────────────
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Cancel(int id, [FromQuery] string reason, CancellationToken ct = default)
     {
-        var userId = int.Parse(
-            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null)
+            return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
 
-        var bookings = await _unitOfWork.Bookings.AsQueryable()
-            .Include(b => b.Slot)
-                .ThenInclude(s => s!.Turf)
-            .Where(b => b.UserId == userId)
-            .Select(b => new
-            {
-                bookingId = b.Id,
-                bookedOn = b.BookingDate,
-                turfName = b.Slot!.Turf!.Name,
-                location = b.Slot.Turf.Location,
-                price = b.Slot.Turf.PricePerHour,
-                startTime = b.Slot.StartTime,
-                endTime = b.Slot.EndTime
-            })
-            .ToListAsync();
-
-        return Ok(ApiResponse<object>.SuccessResponse(bookings, "Bookings retrieved successfully"));
-    }
-
-    // ── DELETE /api/booking/{id}/cancel ───────────────────
-    // Cancel a booking — frees the slot
-    [HttpDelete("{id}/cancel")]
-    public async Task<IActionResult> Cancel(int id)
-    {
-        var userId = int.Parse(
-            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-        var booking = await _unitOfWork.Bookings.AsQueryable()
-            .Include(b => b.Slot)
-            .FirstOrDefaultAsync(
-                b => b.Id == id && b.UserId == userId);
-
-        if (booking == null)
-            return NotFound(ApiResponse<object>.FailureResponse("Booking not found", null, 404));
-
-        // Free the slot so others can book it
-        booking.Slot!.IsBooked = false;
-
-        await _unitOfWork.Bookings.Delete(booking);
-
-        await _unitOfWork.SaveChangesAsync();
+        var userId = int.Parse(userIdClaim);
+        var result = await _mediator.Send(new CancelBookingCommand(id, userId, reason), ct);
+        if (!result.IsSuccess)
+        {
+            var statusCode = result.Error == "Booking not found" ? 404 : 400;
+            return StatusCode(statusCode, ApiResponse<object>.FailureResponse(result.Error, null, statusCode));
+        }
 
         return Ok(ApiResponse<string>.SuccessResponse(string.Empty, "Booking cancelled successfully"));
     }

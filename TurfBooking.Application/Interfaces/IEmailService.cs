@@ -16,5 +16,12 @@ namespace Application.Interfaces
             string toEmail,
             string userName,
             string resetToken);
+
+        Task SendBookingCancellationEmailAsync(
+            string toEmail,
+            string userName,
+            string turfName,
+            DateTime bookingDate,
+            string reason);
     }
 }

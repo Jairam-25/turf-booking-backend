@@ -1,6 +1,8 @@
-﻿using Application.Interfaces;
+using Application.Interfaces;
+using Domain.Specifications;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
+using Persistence.Specifications;
 
 namespace Persistence.Repositories;
 
@@ -16,20 +18,31 @@ public class GenericRepository<T>
         _dbSet = context.Set<T>();
     }
 
-    public async Task<T?> GetByIdAsync(Guid id)
-        => await _dbSet.FindAsync(id);
+    public async Task<IEnumerable<T>> FindAsync(Specification<T> spec, CancellationToken cancellationToken = default)
+    {
+        return await SpecificationEvaluator<T>.GetQuery(_dbSet.AsQueryable(), spec).ToListAsync(cancellationToken);
+    }
 
-    public async Task<IEnumerable<T>> GetAllAsync()
-        => await _dbSet.ToListAsync();
+    public async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        => await _dbSet.FindAsync(new object[] { id }, cancellationToken);
 
-    public async Task AddAsync(T entity)
-        => await _dbSet.AddAsync(entity);
+    public async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default)
+        => await _dbSet.ToListAsync(cancellationToken);
 
-    public async Task Update(T entity)
-        => _dbSet.Update(entity);
+    public async Task AddAsync(T entity, CancellationToken cancellationToken = default)
+        => await _dbSet.AddAsync(entity, cancellationToken);
 
-    public async Task Delete(T entity)
-        => _dbSet.Remove(entity);
+    public Task UpdateAsync(T entity, CancellationToken cancellationToken = default)
+    {
+        _dbSet.Update(entity);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
+    {
+        _dbSet.Remove(entity);
+        return Task.CompletedTask;
+    }
 
     public IQueryable<T> AsQueryable()
         => _dbSet.AsQueryable();

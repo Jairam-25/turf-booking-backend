@@ -1,21 +1,26 @@
 using Application.Common.Result;
 using Application.DTOs;
 using Application.Features.Turf.Queries;
+using Application.Features.Turf.Commands;
 using Application.Model;
 using MediatR;
-using Persistence.Interfaces;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace TurfBooking.API.Controllers;
 
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class TurfController(IMediator mediator, ITurfService turfService) : ControllerBase
+public class TurfController : ControllerBase
 {
-    private readonly IMediator _mediator = mediator;
-    private readonly ITurfService _turfService = turfService;
+    private readonly IMediator _mediator;
+
+    public TurfController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
 
     [HttpGet]
     public async Task<IActionResult> Get(
@@ -44,7 +49,7 @@ public class TurfController(IMediator mediator, ITurfService turfService) : Cont
     [HttpPost]
     public async Task<IActionResult> Create(CreateTurfDto dto)
     {
-        var result = await _turfService.CreateTurfAsync(dto);
+        var result = await _mediator.Send(new CreateTurfCommand(dto));
 
         return Ok(ApiResponse<TurfResponseDto>.SuccessResponse(result, "Turf created successfully"));
     }
@@ -52,7 +57,7 @@ public class TurfController(IMediator mediator, ITurfService turfService) : Cont
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await _turfService.DeleteTurfAsync(id);
+        var result = await _mediator.Send(new DeleteTurfCommand(id));
 
         if (!result)
             return NotFound(ApiResponse<object>.FailureResponse("Turf not found", null, 404));

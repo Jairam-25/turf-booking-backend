@@ -12,5 +12,5 @@ public interface IUnitOfWork
 
     ISlotRepository Slots { get; }
 
-    Task<int> SaveChangesAsync();
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

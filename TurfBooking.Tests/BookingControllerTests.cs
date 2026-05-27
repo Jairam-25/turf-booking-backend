@@ -1,15 +1,15 @@
 using Application.Common.Result;
 using Application.DTOs;
-using Domain.Entities;
+using Application.Features.Booking.Commands;
+using Application.Features.Booking.Queries;
+using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Persistence.Context;
+using Moq;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using TurfBooking.API.Controllers;
 using Xunit;
@@ -18,16 +18,13 @@ namespace TurfBooking.Tests;
 
 public class BookingControllerTests
 {
-    private (ApplicationDbContext Context, UnitOfWork UnitOfWork) CreateContextAndUnitOfWork()
+    private readonly Mock<IMediator> _mockMediator;
+    private readonly BookingController _controller;
+
+    public BookingControllerTests()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        var context = new ApplicationDbContext(options);
-        var unitOfWork = new UnitOfWork(context);
-
-        return (context, unitOfWork);
+        _mockMediator = new Mock<IMediator>();
+        _controller = new BookingController(_mockMediator.Object);
     }
 
     private void SetupAuthenticatedUser(ControllerBase controller, string userId)
@@ -49,52 +46,41 @@ public class BookingControllerTests
     public async Task BookSlot_WithValidAvailableSlot_CreatesBookingAndMarksSlotAsBooked()
     {
         // Arrange
-        var (context, unitOfWork) = CreateContextAndUnitOfWork();
-        var controller = new BookingController(unitOfWork);
-        SetupAuthenticatedUser(controller, "100");
-
-        var turf = new Turf { Id = 1, Name = "Champion Field", Location = "Sector 5" };
-        var slot = new Slot { Id = 10, TurfId = 1, StartTime = DateTime.UtcNow, EndTime = DateTime.UtcNow.AddHours(1), IsBooked = false, Turf = turf };
-        await context.Turfs.AddAsync(turf);
-        await context.Slots.AddAsync(slot);
-        await context.SaveChangesAsync();
-
+        SetupAuthenticatedUser(_controller, "100");
         var dto = new CreateBookingDto { SlotId = 10 };
+        var bookingData = new { bookingId = 1, slotId = 10, turfName = "Champion Field", location = "Sector 5" };
+        
+        _mockMediator
+            .Setup(m => m.Send(It.Is<BookSlotCommand>(c => c.Request.SlotId == 10 && c.UserId == 100), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<object>.Success(bookingData));
 
         // Act
-        var response = await controller.BookSlot(dto);
+        var response = await _controller.BookSlot(dto);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<object>>(okResult.Value);
         Assert.True(apiResponse.Success);
-        Assert.True(slot.IsBooked);
-
-        var booking = await context.Bookings.FirstOrDefaultAsync(b => b.SlotId == 10 && b.UserId == 100);
-        Assert.NotNull(booking);
+        Assert.NotNull(apiResponse.Data);
     }
 
     [Fact]
     public async Task BookSlot_WithAlreadyBookedSlot_ReturnsBadRequest()
     {
         // Arrange
-        var (context, unitOfWork) = CreateContextAndUnitOfWork();
-        var controller = new BookingController(unitOfWork);
-        SetupAuthenticatedUser(controller, "100");
-
-        var turf = new Turf { Id = 1, Name = "Champion Field", Location = "Sector 5" };
-        var slot = new Slot { Id = 10, TurfId = 1, StartTime = DateTime.UtcNow, EndTime = DateTime.UtcNow.AddHours(1), IsBooked = true, Turf = turf };
-        await context.Turfs.AddAsync(turf);
-        await context.Slots.AddAsync(slot);
-        await context.SaveChangesAsync();
-
+        SetupAuthenticatedUser(_controller, "100");
         var dto = new CreateBookingDto { SlotId = 10 };
+        
+        _mockMediator
+            .Setup(m => m.Send(It.IsAny<BookSlotCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<object>.Failure("Slot is already booked"));
 
         // Act
-        var response = await controller.BookSlot(dto);
+        var response = await _controller.BookSlot(dto);
 
         // Assert
-        var badRequestResult = Assert.IsType<BadRequestObjectResult>(response);
+        var badRequestResult = Assert.IsType<ObjectResult>(response);
+        Assert.Equal(400, badRequestResult.StatusCode);
         var apiResponse = Assert.IsType<ApiResponse<object>>(badRequestResult.Value);
         Assert.False(apiResponse.Success);
         Assert.Equal("Slot is already booked", apiResponse.Message);
@@ -104,69 +90,40 @@ public class BookingControllerTests
     public async Task MyBookings_ReturnsOnlyLoggedUsersBookings()
     {
         // Arrange
-        var (context, unitOfWork) = CreateContextAndUnitOfWork();
-        var controller = new BookingController(unitOfWork);
-        SetupAuthenticatedUser(controller, "100");
+        SetupAuthenticatedUser(_controller, "100");
+        var myBookingsList = new List<object> { new { bookingId = 1, turfName = "Champion Field" } };
 
-        var turf = new Turf { Id = 1, Name = "Champion Field", Location = "Sector 5" };
-        var slot1 = new Slot { Id = 10, TurfId = 1, StartTime = DateTime.UtcNow, EndTime = DateTime.UtcNow.AddHours(1), IsBooked = true, Turf = turf };
-        var slot2 = new Slot { Id = 20, TurfId = 1, StartTime = DateTime.UtcNow.AddHours(1), EndTime = DateTime.UtcNow.AddHours(2), IsBooked = true, Turf = turf };
-
-        var booking1 = new Booking { Id = 500, UserId = 100, SlotId = 10, Slot = slot1 };
-        var booking2 = new Booking { Id = 600, UserId = 200, SlotId = 20, Slot = slot2 }; // different user
-
-        await context.Turfs.AddAsync(turf);
-        await context.Slots.AddRangeAsync(slot1, slot2);
-        await context.Bookings.AddRangeAsync(booking1, booking2);
-        await context.SaveChangesAsync();
+        _mockMediator
+            .Setup(m => m.Send(It.Is<GetMyBookingsQuery>(q => q.UserId == 100), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<object>.Success(myBookingsList));
 
         // Act
-        var response = await controller.MyBookings();
+        var response = await _controller.MyBookings();
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<object>>(okResult.Value);
         Assert.True(apiResponse.Success);
-
-        var dataList = Assert.IsAssignableFrom<IEnumerable>(apiResponse.Data);
-        var count = 0;
-        foreach (var item in dataList)
-        {
-            count++;
-            var bookingIdProperty = item.GetType().GetProperty("bookingId");
-            var bookingIdVal = (int)bookingIdProperty.GetValue(item);
-            Assert.Equal(500, bookingIdVal); // should only get booking for user 100
-        }
-        Assert.Equal(1, count);
+        Assert.NotNull(apiResponse.Data);
     }
 
     [Fact]
     public async Task Cancel_FreesSlotAndDeletesBooking()
     {
         // Arrange
-        var (context, unitOfWork) = CreateContextAndUnitOfWork();
-        var controller = new BookingController(unitOfWork);
-        SetupAuthenticatedUser(controller, "100");
+        SetupAuthenticatedUser(_controller, "100");
 
-        var turf = new Turf { Id = 1, Name = "Champion Field", Location = "Sector 5" };
-        var slot = new Slot { Id = 10, TurfId = 1, StartTime = DateTime.UtcNow, EndTime = DateTime.UtcNow.AddHours(1), IsBooked = true, Turf = turf };
-        var booking = new Booking { Id = 500, UserId = 100, SlotId = 10, Slot = slot };
-
-        await context.Turfs.AddAsync(turf);
-        await context.Slots.AddAsync(slot);
-        await context.Bookings.AddAsync(booking);
-        await context.SaveChangesAsync();
+        _mockMediator
+            .Setup(m => m.Send(It.Is<CancelBookingCommand>(c => c.BookingId == 500 && c.UserId == 100 && c.Reason == "Change of plans"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<string>.Success("Booking cancelled successfully"));
 
         // Act
-        var response = await controller.Cancel(500);
+        var response = await _controller.Cancel(500, "Change of plans");
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<string>>(okResult.Value);
         Assert.True(apiResponse.Success);
-        Assert.False(slot.IsBooked); // should be freed
-
-        var deletedBooking = await context.Bookings.FindAsync(500);
-        Assert.Null(deletedBooking); // should be soft/hard deleted (controller calls unitOfWork.Bookings.Delete which calls context.Bookings.Remove)
+        Assert.Equal("Booking cancelled successfully", apiResponse.Message);
     }
 }

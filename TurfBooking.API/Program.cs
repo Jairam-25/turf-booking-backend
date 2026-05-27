@@ -1,23 +1,27 @@
 using Application.Common.Settings;
 using Application.Validators;
+using Asp.Versioning;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hangfire;
+using HealthChecks.UI.Client;
 using Infrastructure;
+using Infrastructure.Hubs;
 using Infrastructure.Services;
+using Mapster;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Persistence;
-using System.Text;
-using TurfBooking.API.Middlewares;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
 using Serilog;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using HealthChecks.UI.Client;
-using Asp.Versioning;
+using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
+using OpenTelemetry.Trace;
+using TurfBooking.API.Middlewares;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -31,12 +35,34 @@ builder.Host.UseSerilog();
 
 // Add Services
 builder.Services.AddControllers();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+
+// Register OpenTelemetry
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .AddSource("TurfBooking.API")
+        .AddAspNetCoreInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation()
+        .AddRedisInstrumentation()
+        .AddConsoleExporter());
+
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "TurfBooking API",
+        Title = "TurfXpert API",
         Version = "v1"
     });
 
@@ -163,6 +189,10 @@ builder.Services.AddPersistence(
     builder.Configuration);
 builder.Services.AddInfrastructure();
 
+// Mapster Configuration
+builder.Services.AddMapster();
+TypeAdapterConfig.GlobalSettings.Scan(typeof(AuthService).Assembly);
+
 builder.Services.AddMediatR(typeof(AuthService).Assembly);
 
 builder.Services.AddApiVersioning(options =>
@@ -171,6 +201,9 @@ builder.Services.AddApiVersioning(options =>
     options.AssumeDefaultVersionWhenUnspecified = true;
     options.ReportApiVersions = true;
 });
+
+// SignalR
+builder.Services.AddSignalR();
 
 //Configure Jwt Settings
 builder.Services.Configure<JwtSettings>(
@@ -183,9 +216,10 @@ builder.Services.AddCors(options =>
         "AllowAngular",
         policy =>
         {
-            policy.AllowAnyOrigin()
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+            policy.WithOrigins("http://localhost:4200")
+                              .AllowAnyHeader()
+                              .AllowAnyMethod()
+                              .AllowCredentials();
         });
 });
 
@@ -246,6 +280,8 @@ var app = builder.Build();
 // Global Exception Middleware
 app.UseMiddleware<ExceptionMiddleware>();
 
+app.UseResponseCompression();
+
 // Swagger
 if (app.Environment.IsDevelopment())
 {
@@ -279,6 +315,9 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 
 // Map Controllers
 app.MapControllers();
+
+// Map SignalR hubs
+app.MapHub<SlotHub>("/hubs/slots");
 
 // Run Application
 app.Run();

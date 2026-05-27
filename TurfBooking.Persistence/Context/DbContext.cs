@@ -1,4 +1,6 @@
-﻿using Domain.Entities;
+using Domain.Common;
+using Domain.Entities;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Configurations;
 
@@ -6,9 +8,15 @@ namespace Persistence.Context;
 
 public class ApplicationDbContext : DbContext
 {
+    private readonly IMediator _mediator;
+
     public ApplicationDbContext(
-        DbContextOptions<ApplicationDbContext> options)
-        : base(options) { }
+        DbContextOptions<ApplicationDbContext> options,
+        IMediator mediator)
+        : base(options) 
+    { 
+        _mediator = mediator;
+    }
 
     public DbSet<User> Users { get; set; }
     public DbSet<Turf> Turfs { get; set; }
@@ -37,5 +45,28 @@ public class ApplicationDbContext : DbContext
             .HasQueryFilter(b => !b.IsDeleted);
 
         base.OnModelCreating(modelBuilder);
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        var entitiesWithEvents = ChangeTracker.Entries<BaseEntity>()
+            .Select(e => e.Entity)
+            .Where(e => e.DomainEvents.Any())
+            .ToArray();
+
+        foreach (var entity in entitiesWithEvents)
+        {
+            var events = entity.DomainEvents.ToArray();
+            entity.ClearDomainEvents();
+
+            foreach (var domainEvent in events)
+            {
+                await _mediator.Publish(domainEvent, cancellationToken);
+            }
+        }
+
+        return result;
     }
 }

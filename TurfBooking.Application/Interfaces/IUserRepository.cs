@@ -7,14 +7,12 @@ namespace Application.Interfaces
     public interface IUserRepository
         : IGenericRepository<User>
     {
-        Task<User?> GetByEmailAsync(LoginRequestDto req);
+        Task<User?> GetByEmailAsync(LoginRequestDto req, CancellationToken cancellationToken = default);
 
         Task<User?> GetByPasswordResetTokenAsync(
-            string token);
+            string token, CancellationToken cancellationToken = default);
 
         Task<User?> GetByRefreshTokenAsync(
-            string refreshToken);
-
-        Task<Turf?> ValidateIdAsync(int? id);
+            string refreshToken, CancellationToken cancellationToken = default);
     }
 }

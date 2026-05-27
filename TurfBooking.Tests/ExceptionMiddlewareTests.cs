@@ -5,13 +5,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Json;
-using System.Threading.Tasks;
 using TurfBooking.API.Middlewares;
-using Xunit;
 
 namespace TurfBooking.Tests;
 
@@ -101,6 +96,7 @@ public class ExceptionMiddlewareTests
         Assert.NotNull(apiResponse);
         Assert.False(apiResponse.Success);
         Assert.Equal("Validation failed.", apiResponse.Message);
+        Assert.NotNull(apiResponse.Errors);
         Assert.Contains("Email is required", apiResponse.Errors);
     }
 }

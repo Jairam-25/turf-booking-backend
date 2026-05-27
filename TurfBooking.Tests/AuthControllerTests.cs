@@ -81,7 +81,7 @@ public class AuthControllerTests
         var okResult = Assert.IsType<OkObjectResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<LoginResponseDto>>(okResult.Value);
         Assert.True(apiResponse.Success);
-        Assert.Equal("access_token", apiResponse.Data.Token);
+        Assert.Equal("access_token", apiResponse!.Data!.Token);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class AuthControllerTests
         var okResult = Assert.IsType<OkObjectResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<LoginResponseDto>>(okResult.Value);
         Assert.True(apiResponse.Success);
-        Assert.Equal("new_access_token", apiResponse.Data.Token);
+        Assert.Equal("new_access_token", apiResponse!.Data!.Token);
     }
 
     [Fact]

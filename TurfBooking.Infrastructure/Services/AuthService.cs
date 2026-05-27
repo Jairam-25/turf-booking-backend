@@ -2,6 +2,7 @@ using Application.Common.Constants;
 using Application.Common.Messages;
 using Application.Common.Settings;
 using Application.DTOs;
+using Mapster;
 using Application.Interfaces;
 using Domain.Entities;
 using Hangfire;
@@ -22,7 +23,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
     private readonly IEmailService _emailService = emailService;
 
-    public async Task<Result<string>> RegisterAsync(RegisterRequestDto request)
+    public async Task<Result<string>> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
     {
         var existingUser = await _userRepository
             .GetByEmailAsync(new LoginRequestDto { EmailOrPhone = request.Email });
@@ -35,13 +36,8 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
         var hashedPassword =
             BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-        var user = new User
-        {
-            Name = request.Name,
-            Email = request.Email,
-            PhoneNumber = request.PhoneNumber,
-            Password = hashedPassword
-        };
+        var user = request.Adapt<User>();
+        user.Password = hashedPassword;
 
         await _userRepository.AddAsync(user);
 
@@ -59,7 +55,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     }
 
     public async Task<Result<LoginResponseDto>>
-     LoginAsync(LoginRequestDto req)
+     LoginAsync(LoginRequestDto req, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByEmailAsync(req);
 
@@ -111,23 +107,16 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
 
         await _unitOfWork.SaveChangesAsync();
 
-        var response = new LoginResponseDto
-        {
-            Name = user.Name,
-            Email = user.Email,
-            Number = user.PhoneNumber,
-            Role = user.Role,
-            Token = token,
-            // Return RAW token to client (not hashed)
-            RefreshToken = rawRefreshToken
-        };
+        var response = user.Adapt<LoginResponseDto>();
+        response.Token = token;
+        response.RefreshToken = rawRefreshToken;
 
         return Result<LoginResponseDto>
             .Success(response);
     }
 
     // Forget password
-    public async Task<Result<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request)
+    public async Task<Result<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository
             .GetByEmailAsync(new LoginRequestDto { EmailOrPhone = request.Email });
@@ -160,7 +149,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     // ResetPasswordAsync
 
     public async Task<Result<string>> ResetPasswordAsync(
-        ResetPasswordRequestDto request)
+        ResetPasswordRequestDto request, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository
             .GetByPasswordResetTokenAsync(
@@ -194,7 +183,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     // RefreshTokenAsync
 
     public async Task<Result<LoginResponseDto>>
-        RefreshTokenAsync(string refreshToken)
+        RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         // Hash the incoming token to find matching DB record
         var hashedToken = HashToken(refreshToken);
@@ -227,15 +216,9 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
 
         await _unitOfWork.SaveChangesAsync();
 
-        var response = new LoginResponseDto
-        {
-            Name = user.Name,
-            Email = user.Email,
-            Role = user.Role,
-            Token = newJwtToken,
-            // Send raw token back to client
-            RefreshToken = newRawRefreshToken
-        };
+        var response = user.Adapt<LoginResponseDto>();
+        response.Token = newJwtToken;
+        response.RefreshToken = newRawRefreshToken;
 
         return Result<LoginResponseDto>
             .Success(response);
