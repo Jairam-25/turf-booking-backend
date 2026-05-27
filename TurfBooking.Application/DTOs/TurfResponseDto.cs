@@ -1,4 +1,4 @@
-﻿namespace Application.DTOs
+namespace Application.DTOs
 {
     public class TurfResponseDto
     {
@@ -6,5 +6,6 @@
         public string Name { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public decimal PricePerHour { get; set; }
+        public double Rating { get; set; }
     }
 }

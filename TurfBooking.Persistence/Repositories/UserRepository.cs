@@ -36,6 +36,25 @@ namespace Persistence.Repositories
                     (x.PhoneNumber != null && x.PhoneNumber.EndsWith(suffix)), cancellationToken);
         }
 
+        public async Task<User?> GetByPhoneNumberAsync(string phoneNumber, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+                return null;
+
+            var input = phoneNumber.Trim();
+            var suffix = input;
+            if (input.Length >= 10)
+            {
+                suffix = input.Substring(input.Length - 10);
+            }
+
+            return await _context.Users
+                .FirstOrDefaultAsync(x => 
+                    x.PhoneNumber == input || 
+                    x.PhoneNumber == suffix || 
+                    (x.PhoneNumber != null && x.PhoneNumber.EndsWith(suffix)), cancellationToken);
+        }
+
         public async Task<User?> GetByPasswordResetTokenAsync(
         string token, CancellationToken cancellationToken = default)
         {

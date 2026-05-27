@@ -17,6 +17,10 @@ namespace Application.Interfaces
             string userName,
             string resetToken);
 
+        Task SendOtpEmailAsync(
+            string toEmail,
+            string otpCode);
+
         Task SendBookingCancellationEmailAsync(
             string toEmail,
             string userName,

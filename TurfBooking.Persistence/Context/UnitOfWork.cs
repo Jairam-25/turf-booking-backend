@@ -17,13 +17,16 @@ namespace Persistence.Context
 
         public ISlotRepository Slots { get; }
 
+        public IReviewRepository Reviews { get; }
+
         public UnitOfWork
         (
             ApplicationDbContext context,
             IUserRepository users,
             IBookingRepository bookings,
             ITurfRepository turfs,
-            ISlotRepository slots
+            ISlotRepository slots,
+            IReviewRepository reviews
         )
         {
             _context = context;
@@ -31,6 +34,7 @@ namespace Persistence.Context
             Bookings = bookings;
             Turfs = turfs;
             Slots = slots;
+            Reviews = reviews;
         }
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

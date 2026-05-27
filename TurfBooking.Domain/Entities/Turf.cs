@@ -1,4 +1,4 @@
-﻿using Domain.Common;
+using Domain.Common;
 
 namespace Domain.Entities;
 
@@ -12,4 +12,7 @@ public class Turf : BaseEntity
 
     public ICollection<Slot> Slots { get; set; }
         = new List<Slot>();
+
+    public ICollection<Review> Reviews { get; set; }
+        = new List<Review>();
 }
