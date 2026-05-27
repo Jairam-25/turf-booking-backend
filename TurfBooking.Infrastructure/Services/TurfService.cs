@@ -93,11 +93,17 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
 
         var totalCount = await turfQuery.CountAsync(cancellationToken);
 
-        var items = await turfQuery
+        var turfs = await turfQuery
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .ProjectToType<TurfResponseDto>()
+            .Include(t => t.Reviews)
             .ToListAsync(cancellationToken);
+
+        var items = turfs.Select(t => {
+            var dto = t.Adapt<TurfResponseDto>();
+            dto.Rating = t.Reviews.Any() ? Math.Round(t.Reviews.Average(r => (double)r.Rating), 1) : 0.0;
+            return dto;
+        }).ToList();
 
         _logger.LogInformation(
             "Turf list fetched from DB. " +
@@ -195,6 +201,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
     public async Task<TurfResponseDto?> GetTurfByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var turf = await _unitOfWork.Turfs.AsQueryable()
+            .Include(t => t.Reviews)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted, cancellationToken);
 
         if (turf == null)
@@ -206,7 +213,9 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
             return null;
         }
 
-        return turf.Adapt<TurfResponseDto>();
+        var dto = turf.Adapt<TurfResponseDto>();
+        dto.Rating = turf.Reviews.Any() ? Math.Round(turf.Reviews.Average(r => (double)r.Rating), 1) : 0.0;
+        return dto;
     }
 
     private async Task InvalidateTurfCacheAsync(CancellationToken cancellationToken = default)

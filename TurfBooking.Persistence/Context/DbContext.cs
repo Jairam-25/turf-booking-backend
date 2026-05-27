@@ -22,6 +22,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Turf> Turfs { get; set; }
     public DbSet<Slot> Slots { get; set; }
     public DbSet<Booking> Bookings { get; set; }
+    public DbSet<Review> Reviews { get; set; }
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
@@ -31,6 +32,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new TurfConfiguration());
         modelBuilder.ApplyConfiguration(new SlotConfiguration());
         modelBuilder.ApplyConfiguration(new BookingConfiguration());
+        modelBuilder.ApplyConfiguration(new ReviewConfiguration());
 
         modelBuilder.Entity<User>()
             .HasQueryFilter(u => !u.IsDeleted);
@@ -43,6 +45,9 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Booking>()
             .HasQueryFilter(b => !b.IsDeleted);
+
+        modelBuilder.Entity<Review>()
+            .HasQueryFilter(r => !r.IsDeleted);
 
         base.OnModelCreating(modelBuilder);
     }
