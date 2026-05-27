@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<ITurfRepository, TurfRepository>();
         services.AddScoped<ISlotRepository, SlotRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IReviewRepository, ReviewRepository>();
 
 
         return services;

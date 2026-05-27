@@ -56,7 +56,8 @@ public class TurfServiceTests
             new UserRepository(context),
             new BookingRepository(context),
             new TurfRepository(context),
-            new SlotRepository(context)
+            new SlotRepository(context),
+            new ReviewRepository(context)
         );
 
         return (context, unitOfWork);
