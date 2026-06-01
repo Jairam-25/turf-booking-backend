@@ -14,7 +14,8 @@ using Xunit;
 
 namespace TurfBooking.Tests
 {
-    public class BookingIntegrationTests : IClassFixture<TurfApiFactory>
+    [Collection("IntegrationTests")]
+    public class BookingIntegrationTests
     {
         private readonly TurfApiFactory _factory;
         private readonly int _seededSlotId;

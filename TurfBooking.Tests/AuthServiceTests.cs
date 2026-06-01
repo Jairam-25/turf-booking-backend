@@ -18,6 +18,7 @@ public class AuthServiceTests
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<IEmailService> _mockEmailService;
     private readonly Mock<IOptions<JwtSettings>> _mockJwtSettings;
+    private readonly Mock<IBackgroundJobClient> _mockBackgroundJobClient;
     private readonly AuthService _authService;
 
     public AuthServiceTests()
@@ -26,6 +27,7 @@ public class AuthServiceTests
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockEmailService = new Mock<IEmailService>();
         _mockJwtSettings = new Mock<IOptions<JwtSettings>>();
+        _mockBackgroundJobClient = new Mock<IBackgroundJobClient>();
 
         var jwtSettings = new JwtSettings
         {
@@ -39,7 +41,8 @@ public class AuthServiceTests
             _mockUserRepository.Object,
             _mockUnitOfWork.Object,
             _mockJwtSettings.Object,
-            _mockEmailService.Object
+            _mockEmailService.Object,
+            _mockBackgroundJobClient.Object
         );
 
         // Mock Hangfire JobStorage and IBackgroundJobClient to prevent static BackgroundJob.Enqueue from throwing

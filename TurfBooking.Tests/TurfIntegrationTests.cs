@@ -13,7 +13,8 @@ using Xunit;
 
 namespace TurfBooking.Tests
 {
-    public class TurfIntegrationTests : IClassFixture<TurfApiFactory>
+    [Collection("IntegrationTests")]
+    public class TurfIntegrationTests
     {
         private readonly TurfApiFactory _factory;
 
