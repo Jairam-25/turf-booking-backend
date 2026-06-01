@@ -2,8 +2,7 @@
 
 ## Overview
 
-The Turf Booking System is a modern sports turf reservation platform built using ASP.NET Core Web API and Clean Architecture principles.
-
+The Turf Booking System is an advanced sports turf reservation platform developed using modern technologies and enterprise-level features, built with ASP.NET Core Web API and Clean Architecture principles.
 This system allows users to search available turfs, check slot availability, create bookings, make payments, and receive notifications through mobile or web applications.
 
 The project is designed with a scalable layered architecture that separates business logic, application services, infrastructure services, and presentation APIs for better maintainability and performance.

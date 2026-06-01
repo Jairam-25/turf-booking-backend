@@ -1,30 +1,74 @@
-﻿using Domain.Entities;
+using Application.DTOs;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Context;
-using TurfBooking.Persistence.Interfaces;
+using Application.Interfaces;
 
-namespace Persistence.Repositories;
-
-public class UserRepository : IUserRepository
+namespace Persistence.Repositories
 {
-    private readonly ApplicationDbContext _context;
-
-    public UserRepository(ApplicationDbContext context)
+    public class UserRepository 
+        : GenericRepository<User>, IUserRepository
     {
-        _context = context;
+        public UserRepository(ApplicationDbContext context)
+            : base(context)
+        {
+        }
+
+        public async Task<User?> GetByEmailAsync(LoginRequestDto req, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(req.EmailOrPhone))
+                return null;
+
+            var input = req.EmailOrPhone.Trim();
+
+            // Extract the last 10 digits as suffix for robust matching
+            var suffix = input;
+            if (input.Length >= 10)
+            {
+                suffix = input.Substring(input.Length - 10);
+            }
+
+            return await _context.Users
+                .FirstOrDefaultAsync(x => 
+                    x.Email == input || 
+                    x.PhoneNumber == input || 
+                    x.PhoneNumber == suffix || 
+                    (x.PhoneNumber != null && x.PhoneNumber.EndsWith(suffix)), cancellationToken);
+        }
+
+        public async Task<User?> GetByPhoneNumberAsync(string phoneNumber, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+                return null;
+
+            var input = phoneNumber.Trim();
+            var suffix = input;
+            if (input.Length >= 10)
+            {
+                suffix = input.Substring(input.Length - 10);
+            }
+
+            return await _context.Users
+                .FirstOrDefaultAsync(x => 
+                    x.PhoneNumber == input || 
+                    x.PhoneNumber == suffix || 
+                    (x.PhoneNumber != null && x.PhoneNumber.EndsWith(suffix)), cancellationToken);
+        }
+
+        public async Task<User?> GetByPasswordResetTokenAsync(
+        string token, CancellationToken cancellationToken = default)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(x =>
+                    x.PasswordResetToken == token, cancellationToken);
+        }
+
+        public async Task<User?> GetByRefreshTokenAsync(
+            string refreshToken, CancellationToken cancellationToken = default)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(x =>
+                    x.RefreshToken == refreshToken, cancellationToken);
+        }
     }
-
-    public async Task<User?> GetByEmailAsync(string email)
-    {
-        return await _context.Users
-            .FirstOrDefaultAsync(x => x.Email == email);
-    }
-
-    public async Task AddAsync(User user)
-    {
-        await _context.Users.AddAsync(user);
-
-        await _context.SaveChangesAsync();
-    }
-
 }

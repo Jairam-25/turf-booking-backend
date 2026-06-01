@@ -1,23 +1,20 @@
-﻿using Application.DTOs;
+using Application.DTOs;
 
-namespace Application.Interfaces
+
+public interface IAuthService
 {
+    Task<Result<string>> RegisterAsync(
+        RegisterRequestDto request, CancellationToken cancellationToken = default);
 
-    public interface IAuthService
-    {
-        Task<string> RegisterAsync(
-            RegisterRequestDto request);
+    Task<Result<LoginResponseDto>> LoginAsync(
+        LoginRequestDto request, CancellationToken cancellationToken = default);
 
-        Task<AuthResponseDto?> LoginAsync(
-            LoginRequestDto request);
+    Task<Result<string>> ForgotPasswordAsync(
+        ForgotPasswordRequestDto request, CancellationToken cancellationToken = default);
 
-        Task<AuthResponseDto?> RefreshTokenAsync(
-            string refreshToken);
+    Task<Result<string>> ResetPasswordAsync(
+        ResetPasswordRequestDto request, CancellationToken cancellationToken = default);
 
-        Task<string> ForgotPasswordAsync(
-            ForgotPasswordRequestDto request);
-
-        Task<string> ResetPasswordAsync(
-            ResetPasswordRequestDto request);
-    }
+    Task<Result<LoginResponseDto>> RefreshTokenAsync(
+        string refreshToken, CancellationToken cancellationToken = default);
 }

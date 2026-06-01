@@ -1,32 +1,45 @@
-﻿using Application.Interfaces;
+using Application.Interfaces;
 using Domain.Entities;
-using Persistence.Context;
+using Persistence.Repositories;
 
-namespace Persistence.Repositories;
-
-public class UnitOfWork : IUnitOfWork
+namespace Persistence.Context
 {
-    private readonly ApplicationDbContext _context;
 
-    public IGenericRepository<User> Users { get; }
-
-    public IGenericRepository<Booking> Bookings { get; }
-
-    public IGenericRepository<Turf> Turfs { get; }
-
-    public UnitOfWork(ApplicationDbContext context)
+    public class UnitOfWork : IUnitOfWork
     {
-        _context = context;
+        private readonly ApplicationDbContext _context;
 
-        Users = new GenericRepository<User>(_context);
+        public IUserRepository Users { get; }
 
-        Bookings = new GenericRepository<Booking>(_context);
+        public IBookingRepository Bookings { get; }
 
-        Turfs = new GenericRepository<Turf>(_context);
-    }
+        public ITurfRepository Turfs { get; }
 
-    public async Task<int> SaveChangesAsync()
-    {
-        return await _context.SaveChangesAsync();
+        public ISlotRepository Slots { get; }
+
+        public IReviewRepository Reviews { get; }
+
+        public UnitOfWork
+        (
+            ApplicationDbContext context,
+            IUserRepository users,
+            IBookingRepository bookings,
+            ITurfRepository turfs,
+            ISlotRepository slots,
+            IReviewRepository reviews
+        )
+        {
+            _context = context;
+            Users = users;
+            Bookings = bookings;
+            Turfs = turfs;
+            Slots = slots;
+            Reviews = reviews;
+        }
+
+        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.SaveChangesAsync(cancellationToken);
+        }
     }
 }
