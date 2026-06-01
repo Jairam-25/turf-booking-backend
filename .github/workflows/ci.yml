@@ -17,14 +17,29 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Clean solution
+        run: dotnet clean TurfBooking.sln
+
       - name: Restore packages
-        run: dotnet restore
+        run: dotnet restore TurfBooking.sln
+
+      # If LoadBalancer project is not included in the solution, restore it explicitly
+      - name: Restore LoadBalancer project
+        run: dotnet restore TurfBooking.LoadBalancer/TurfBooking.LoadBalancer.csproj
 
       - name: Build
-        run: dotnet build --no-restore -c Release
+        run: dotnet build TurfBooking.sln --no-restore -c Release
 
       - name: Run Unit Tests
-        run: dotnet test --no-build -c Release --logger "trx;LogFileName=results.xml"
+        run: dotnet test TurfBooking.sln --no-build -c Release --logger "trx;LogFileName=results.xml"
 
       - name: Publish Test Results
         uses: dorny/test-reporter@v1
@@ -42,4 +57,4 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build Docker Image
-        run: docker build -f TurfBooking.API/Dockerfile -t turfbooking-api .
+        run: docker build -f TurfBooking.API/Dockerfile -t turfbooking-api TurfBooking.API
