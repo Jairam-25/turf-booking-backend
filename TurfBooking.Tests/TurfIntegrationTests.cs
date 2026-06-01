@@ -71,12 +71,12 @@ namespace TurfBooking.Tests
             var response = await client.GetAsync($"/api/v1/turf/{nonExistentId}");
 
             // Assert
-            if (response.StatusCode != HttpStatusCode.NotFound)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Expected NotFound, but got {response.StatusCode}. Response: {content}");
-            }
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+            result.Should().NotBeNull();
+            result!.Success.Should().BeFalse();
+            result.Message.Should().ContainEquivalentOf("Turf not found");
         }
     }
 }

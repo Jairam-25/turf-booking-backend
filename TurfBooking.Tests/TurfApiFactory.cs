@@ -29,6 +29,10 @@ namespace TurfBooking.Tests
 
         static TurfApiFactory()
         {
+            // Set environment variables to bypass empty config settings in CI environment
+            Environment.SetEnvironmentVariable("JwtSettings__Key", "super_secret_key_for_testing_purposes_only_32_characters");
+            Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", "Server=localhost;Database=TestDb;User Id=sa;Password=Password123;TrustServerCertificate=True");
+
             // Set static JobStorage.Current to our mock to prevent BackgroundJob.Enqueue from throwing exception
             _mockStorage.Setup(x => x.GetConnection()).Returns(_mockConnection.Object);
             JobStorage.Current = _mockStorage.Object;
