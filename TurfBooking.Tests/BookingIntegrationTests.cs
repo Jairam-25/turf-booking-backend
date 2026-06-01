@@ -19,6 +19,7 @@ namespace TurfBooking.Tests
     {
         private readonly TurfApiFactory _factory;
         private readonly int _seededSlotId;
+        private readonly int _seededSlotId2;
         private readonly int _alreadyBookedSlotId;
 
         public BookingIntegrationTests(TurfApiFactory factory)
@@ -51,10 +52,18 @@ namespace TurfBooking.Tests
                 IsBooked = true, 
                 TurfId = turf.Id 
             };
-            db.Slots.AddRange(slot1, slot2);
+            var slot3 = new Slot
+            {
+                StartTime = DateTime.UtcNow.AddHours(3),
+                EndTime = DateTime.UtcNow.AddHours(4),
+                IsBooked = false,
+                TurfId = turf.Id
+            };
+            db.Slots.AddRange(slot1, slot2, slot3);
             db.SaveChanges();
 
             _seededSlotId = slot1.Id;
+            _seededSlotId2 = slot3.Id;
             _alreadyBookedSlotId = slot2.Id;
         }
 
@@ -157,6 +166,43 @@ namespace TurfBooking.Tests
             result.Should().NotBeNull();
             result!.Success.Should().BeFalse();
             result.Message.Should().Be("Slot is already booked");
+        }
+
+        [Fact]
+        public async Task GetMyBookings_ReturnsBookingsSortedByBookingDateDescending()
+        {
+            // Arrange
+            var client = await GetAuthenticatedClientAsync();
+            
+            // Book first slot
+            var bookResponse1 = await client.PostAsJsonAsync("/api/v1/booking", new CreateBookingDto { SlotId = _seededSlotId });
+            bookResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
+            
+            await Task.Delay(100); // Ensure a minor difference in booking date
+
+            // Book second slot
+            var bookResponse2 = await client.PostAsJsonAsync("/api/v1/booking", new CreateBookingDto { SlotId = _seededSlotId2 });
+            bookResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            // Act
+            var response = await client.GetAsync("/api/v1/booking/my");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<JsonElement>>();
+            result.Should().NotBeNull();
+            result!.Success.Should().BeTrue();
+            result.Data.ValueKind.Should().Be(JsonValueKind.Array);
+            result.Data.GetArrayLength().Should().Be(2);
+
+            // The second booking (more recent) should be first in the array
+            var firstBookingInList = result.Data[0];
+            var secondBookingInList = result.Data[1];
+
+            var id1 = firstBookingInList.GetProperty("bookingId").GetInt32();
+            var id2 = secondBookingInList.GetProperty("bookingId").GetInt32();
+            id1.Should().BeGreaterThan(id2);
         }
     }
 }

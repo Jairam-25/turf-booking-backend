@@ -87,6 +87,7 @@ namespace Infrastructure.Services
                 .Include(b => b.Slot)
                 .ThenInclude(s => s!.Turf)
                 .Where(b => b.UserId == userId)
+                .OrderByDescending(b => b.BookingDate)
                 .Select(b => new
                 {
                     bookingId = b.Id,
