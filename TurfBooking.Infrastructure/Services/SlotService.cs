@@ -29,6 +29,14 @@ namespace Infrastructure.Services
 
         public async Task<Result<IEnumerable<SlotResponseDto>>> GetAvailableSlotsAsync(int turfId, CancellationToken ct = default)
         {
+            // Verify if the turf exists and is not deleted
+            var turfExists = await _unitOfWork.Turfs.AsQueryable()
+                .AnyAsync(t => t.Id == turfId && !t.IsDeleted, ct);
+            if (!turfExists)
+            {
+                return Result<IEnumerable<SlotResponseDto>>.Failure($"Turf with ID {turfId} not found.");
+            }
+
             var today = DateTime.UtcNow.Date;
             
             // Check if there are slots generated for today onwards

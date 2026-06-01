@@ -7,15 +7,44 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Asp.Versioning;
 
+using Application.Interfaces;
+
 namespace TurfBooking.API.Controllers
 {
 
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
-    public class AuthController(IMediator mediator) : ControllerBase
+    public class AuthController(IMediator mediator, IOtpService otpService) : ControllerBase
     {
         private readonly IMediator _mediator = mediator;
+        private readonly IOtpService _otpService = otpService;
+
+        [HttpPost("send-otp")]
+        public async Task<IActionResult> SendOtp(SendOtpRequestDto request)
+        {
+            var result = await _otpService.SendOtpAsync(request);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Failed to send OTP", null, 400));
+            }
+
+            return Ok(ApiResponse<string>.SuccessResponse(result.Value ?? string.Empty, "OTP sent successfully"));
+        }
+
+        [HttpPost("verify-otp")]
+        public async Task<IActionResult> VerifyOtp(VerifyOtpRequestDto request)
+        {
+            var result = await _otpService.VerifyOtpAsync(request);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Verification failed", null, 400));
+            }
+
+            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(result.Value, "Verification successful"));
+        }
 
         [HttpPost("register")]
         [EnableRateLimiting("RegisterPolicy")]

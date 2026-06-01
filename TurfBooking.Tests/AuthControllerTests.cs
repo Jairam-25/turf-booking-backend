@@ -4,6 +4,7 @@ using Application.DTOs;
 using Application.Features.Auth.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Application.Interfaces;
 using Moq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,12 +16,14 @@ namespace TurfBooking.Tests;
 public class AuthControllerTests
 {
     private readonly Mock<IMediator> _mockMediator;
+    private readonly Mock<IOtpService> _mockOtpService;
     private readonly AuthController _controller;
 
     public AuthControllerTests()
     {
         _mockMediator = new Mock<IMediator>();
-        _controller = new AuthController(_mockMediator.Object);
+        _mockOtpService = new Mock<IOtpService>();
+        _controller = new AuthController(_mockMediator.Object, _mockOtpService.Object);
     }
 
     [Fact]

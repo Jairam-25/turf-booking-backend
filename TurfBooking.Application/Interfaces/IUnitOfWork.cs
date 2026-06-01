@@ -12,5 +12,7 @@ public interface IUnitOfWork
 
     ISlotRepository Slots { get; }
 
+    IReviewRepository Reviews { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
