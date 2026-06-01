@@ -26,20 +26,20 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Clean solution
-        run: dotnet clean TurfBookingSystemApk.slnx
+        run: dotnet clean TurfBooking.sln
 
       - name: Restore packages
-        run: dotnet restore TurfBookingSystemApk.slnx
+        run: dotnet restore TurfBooking.sln
 
       # If LoadBalancer project is not included in the solution, restore it explicitly
       - name: Restore LoadBalancer project
         run: dotnet restore TurfBooking.LoadBalancer/TurfBooking.LoadBalancer.csproj
 
       - name: Build
-        run: dotnet build TurfBookingSystemApk.slnx --no-restore -c Release
+        run: dotnet build TurfBooking.sln --no-restore -c Release
 
       - name: Run Unit Tests
-        run: dotnet test TurfBookingSystemApk.slnx --no-build -c Release --logger "trx;LogFileName=results.xml"
+        run: dotnet test TurfBooking.sln --no-build -c Release --logger "trx;LogFileName=results.xml"
 
       - name: Publish Test Results
         uses: dorny/test-reporter@v1
