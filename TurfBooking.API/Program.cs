@@ -186,13 +186,16 @@ builder.Services
         <RegisterRequestValidator>();
 
 // Firebase Push Notification Setup
-using var stream = new FileStream("firebase-adminsdk.json", FileMode.Open, FileAccess.Read);
-if (FirebaseAdmin.FirebaseApp.DefaultInstance == null)
+if (File.Exists("firebase-adminsdk.json"))
 {
-    FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions()
+    using var stream = new FileStream("firebase-adminsdk.json", FileMode.Open, FileAccess.Read);
+    if (FirebaseAdmin.FirebaseApp.DefaultInstance == null)
     {
-        Credential = GoogleCredential.FromStream(stream)
-    });
+        FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions()
+        {
+            Credential = GoogleCredential.FromStream(stream)
+        });
+    }
 }
 builder.Services.AddScoped<Application.Interfaces.IFcmNotificationService, Infrastructure.Services.FcmNotificationService>();
 
