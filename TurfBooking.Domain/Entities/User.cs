@@ -1,4 +1,4 @@
-﻿using Domain.Common;
+using Domain.Common;
 
 namespace Domain.Entities;
 
@@ -18,6 +18,10 @@ public class User : BaseEntity
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public string? PasswordResetToken { get; set; }
     public DateTime? ResetTokenExpires { get; set; }
+    
+    // Firebase Cloud Messaging (FCM) Token for Push Notifications
+    public string? FcmToken { get; set; }
+    
     public ICollection<Booking> Bookings { get; set; }
     = new List<Booking>();
 }

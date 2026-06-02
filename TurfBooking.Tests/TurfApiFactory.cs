@@ -13,12 +13,14 @@ using Microsoft.IdentityModel.Tokens;
 using Moq;
 using Persistence.Context;
 using System.Text;
+using Microsoft.AspNetCore.RateLimiting;
 using Xunit;
 
 namespace TurfBooking.Tests
 {
     public class TurfApiFactory : WebApplicationFactory<Program>
     {
+        public bool EnableRateLimiting { get; set; } = false;
         public Mock<IEmailService> EmailServiceMock { get; } = new();
 
         private readonly string _dbName = Guid.NewGuid().ToString();
@@ -53,6 +55,29 @@ namespace TurfBooking.Tests
 
             builder.ConfigureServices(services =>
             {
+                if (!EnableRateLimiting)
+                {
+                    // Remove existing RateLimiterOptions configurations to avoid duplicate policy key errors
+                    var rateLimiterConfigs = services.Where(
+                        d => d.ServiceType.IsGenericType &&
+                        (d.ServiceType.GetGenericTypeDefinition() == typeof(Microsoft.Extensions.Options.IConfigureOptions<>) ||
+                         d.ServiceType.GetGenericTypeDefinition() == typeof(Microsoft.Extensions.Options.IPostConfigureOptions<>)) &&
+                        d.ServiceType.GetGenericArguments()[0] == typeof(Microsoft.AspNetCore.RateLimiting.RateLimiterOptions)).ToList();
+                    
+                    foreach (var config in rateLimiterConfigs)
+                    {
+                        services.Remove(config);
+                    }
+
+                    // Register permissive policies for tests
+                    services.Configure<Microsoft.AspNetCore.RateLimiting.RateLimiterOptions>(options =>
+                    {
+                        options.AddFixedWindowLimiter("LoginPolicy", opt => { opt.PermitLimit = 100000; opt.Window = TimeSpan.FromSeconds(1); });
+                        options.AddFixedWindowLimiter("ForgotPasswordPolicy", opt => { opt.PermitLimit = 100000; opt.Window = TimeSpan.FromSeconds(1); });
+                        options.AddFixedWindowLimiter("RegisterPolicy", opt => { opt.PermitLimit = 100000; opt.Window = TimeSpan.FromSeconds(1); });
+                    });
+                }
+
                 services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters

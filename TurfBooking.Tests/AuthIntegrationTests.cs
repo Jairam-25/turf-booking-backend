@@ -132,7 +132,7 @@ namespace TurfBooking.Tests
         public async Task Login_WithTooManyFailedAttempts_Returns429TooManyRequests()
         {
             // Arrange
-            using var isolatedFactory = new TurfApiFactory();
+            using var isolatedFactory = new TurfApiFactory { EnableRateLimiting = true };
             var client = isolatedFactory.CreateClient();
             var loginRequest = new LoginRequestDto
             {
