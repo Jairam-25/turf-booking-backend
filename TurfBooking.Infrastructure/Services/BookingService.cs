@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Hubs;
 using Microsoft.Extensions.DependencyInjection;
+using Domain.Events;
 
 namespace Infrastructure.Services
 {
@@ -13,18 +14,30 @@ namespace Infrastructure.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHubContext<SlotHub> _hubContext;
         private readonly IEmailService _emailService;
-        private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _scopeFactory;
+        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IPaymentService _paymentService;
 
-        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext, IEmailService emailService, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory scopeFactory)
+        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext, IEmailService emailService, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory scopeFactory, IPaymentService paymentService)
         {
             _unitOfWork = unitOfWork;
             _hubContext = hubContext;
             _emailService = emailService;
             _scopeFactory = scopeFactory;
+            _paymentService = paymentService;
         }
 
         public async Task<Result<object>> BookSlotAsync(CreateBookingDto dto, int userId, CancellationToken ct = default)
         {
+            // Verify Payment if Razorpay details are provided
+            if (!string.IsNullOrEmpty(dto.RazorpayOrderId) && !string.IsNullOrEmpty(dto.RazorpayPaymentId) && !string.IsNullOrEmpty(dto.RazorpaySignature))
+            {
+                bool isValidPayment = _paymentService.VerifyPaymentSignature(dto.RazorpayOrderId, dto.RazorpayPaymentId, dto.RazorpaySignature);
+                if (!isValidPayment)
+                {
+                    return Result<object>.Failure("Invalid payment signature");
+                }
+            }
+
             // Find slot with related turf
             var slot = await _unitOfWork.Slots.AsQueryable()
                 .Include(s => s.Turf)
@@ -40,11 +53,11 @@ namespace Infrastructure.Services
             {
                 UserId = userId,
                 SlotId = dto.SlotId,
-                BookingDate = System.DateTime.UtcNow
+                BookingDate = DateTime.UtcNow
             };
 
             // Add domain event
-            booking.AddDomainEvent(new Domain.Events.BookingCreatedEvent(
+            booking.AddDomainEvent(new BookingCreatedEvent(
                 booking.Id,
                 booking.UserId,
                 booking.SlotId,
