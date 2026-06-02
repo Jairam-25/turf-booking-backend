@@ -4,6 +4,7 @@ using Domain.Entities;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Hubs;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Infrastructure.Services
 {
@@ -12,12 +13,14 @@ namespace Infrastructure.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHubContext<SlotHub> _hubContext;
         private readonly IEmailService _emailService;
+        private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _scopeFactory;
 
-        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext, IEmailService emailService)
+        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext, IEmailService emailService, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory scopeFactory)
         {
             _unitOfWork = unitOfWork;
             _hubContext = hubContext;
             _emailService = emailService;
+            _scopeFactory = scopeFactory;
         }
 
         public async Task<Result<object>> BookSlotAsync(CreateBookingDto dto, int userId, CancellationToken ct = default)
@@ -123,19 +126,21 @@ namespace Infrastructure.Services
 
             if (booking.User != null && !string.IsNullOrEmpty(booking.User.Email) && booking.Slot != null && booking.Slot.Turf != null)
             {
-                try
+                var email = booking.User.Email;
+                var name = booking.User.Name;
+                var turfName = booking.Slot.Turf.Name;
+                var date = booking.BookingDate;
+
+                _ = Task.Run(async () =>
                 {
-                    await _emailService.SendBookingCancellationEmailAsync(
-                        booking.User.Email,
-                        booking.User.Name,
-                        booking.Slot.Turf.Name,
-                        booking.BookingDate,
-                        reason);
-                }
-                catch
-                {
-                    // If email fails, don't break cancellation flow
-                }
+                    using var scope = _scopeFactory.CreateScope();
+                    var emailSvc = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                    try
+                    {
+                        await emailSvc.SendBookingCancellationEmailAsync(email, name, turfName, date, reason);
+                    }
+                    catch { }
+                });
             }
 
             return Result<string>.Success("Booking cancelled successfully");
