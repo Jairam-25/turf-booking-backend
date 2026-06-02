@@ -30,6 +30,7 @@ namespace Infrastructure.Services
         private readonly IEmailService _emailService;
         private readonly ISmsService _smsService;
         private readonly ILogger<OtpService> _logger;
+        private readonly IBackgroundJobClient _backgroundJobClient;
 
         // Thread-safe local fallbacks in case Redis is unavailable
         private static readonly ConcurrentDictionary<string, (string Code, DateTime Expiry)> _localOtpStore = new();
@@ -42,7 +43,8 @@ namespace Infrastructure.Services
             IOptions<JwtSettings> jwtSettings,
             IEmailService emailService,
             ISmsService smsService,
-            ILogger<OtpService> logger)
+            ILogger<OtpService> logger,
+            IBackgroundJobClient backgroundJobClient)
         {
             _userRepository = userRepository;
             _unitOfWork = unitOfWork;
@@ -51,6 +53,7 @@ namespace Infrastructure.Services
             _emailService = emailService;
             _smsService = smsService;
             _logger = logger;
+            _backgroundJobClient = backgroundJobClient;
         }
 
         public async Task<Result<string>> SendOtpAsync(SendOtpRequestDto request, CancellationToken cancellationToken = default)
@@ -128,7 +131,7 @@ namespace Infrastructure.Services
             try
             {
                 _logger.LogInformation("Sending OTP Email to registered email {Email} for identifier {Identifier}", targetEmail, identifier);
-                BackgroundJob.Enqueue<IEmailService>(emailSvc => 
+                _backgroundJobClient.Enqueue<IEmailService>(emailSvc => 
                     emailSvc.SendOtpEmailAsync(targetEmail, otpCode));
             }
             catch (Exception ex)

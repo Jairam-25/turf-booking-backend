@@ -22,6 +22,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using OpenTelemetry.Trace;
 using TurfBooking.API.Middlewares;
+using Google.Apis.Auth.OAuth2;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -184,6 +185,14 @@ builder.Services
     .AddValidatorsFromAssemblyContaining
         <RegisterRequestValidator>();
 
+// Firebase Push Notification Setup
+using var stream = new FileStream("firebase-adminsdk.json", FileMode.Open, FileAccess.Read);
+FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions()
+{
+    Credential = GoogleCredential.FromStream(stream)
+});
+builder.Services.AddScoped<Application.Interfaces.IFcmNotificationService, Infrastructure.Services.FcmNotificationService>();
+
 // Dependency Injection
 builder.Services.AddPersistence(
     builder.Configuration);
@@ -193,7 +202,7 @@ builder.Services.AddInfrastructure();
 builder.Services.AddMapster();
 TypeAdapterConfig.GlobalSettings.Scan(typeof(AuthService).Assembly);
 
-builder.Services.AddMediatR(typeof(AuthService).Assembly);
+builder.Services.AddMediatR(typeof(AuthService).Assembly, typeof(RegisterRequestValidator).Assembly);
 
 builder.Services.AddApiVersioning(options =>
 {

@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using Asp.Versioning;
 
 using Application.Interfaces;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TurfBooking.API.Controllers
 {
@@ -122,6 +124,24 @@ namespace TurfBooking.API.Controllers
             }
 
             return Ok(ApiResponse<string>.SuccessResponse(result.Value ?? string.Empty, "Password reset successfully"));
+        }
+
+        [HttpPost("update-fcm-token")]
+        [Authorize]
+        public async Task<IActionResult> UpdateFcmToken(
+            [FromBody] UpdateFcmTokenDto request,
+            [FromServices] IUserRepository userRepository,
+            [FromServices] IUnitOfWork unitOfWork)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var user = await userRepository.GetByIdAsync(int.Parse(userId));
+            if (user == null) return NotFound();
+
+            user.FcmToken = request.Token;
+            await unitOfWork.SaveChangesAsync();
+            return Ok(ApiResponse<string>.SuccessResponse(string.Empty, "FCM Token updated"));
         }
     }
 }

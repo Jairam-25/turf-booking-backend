@@ -87,6 +87,7 @@ namespace Infrastructure.Services
                 .Include(b => b.Slot)
                 .ThenInclude(s => s!.Turf)
                 .Where(b => b.UserId == userId)
+                .OrderByDescending(b => b.BookingDate)
                 .Select(b => new
                 {
                     bookingId = b.Id,
@@ -106,7 +107,7 @@ namespace Infrastructure.Services
         {
             var booking = await _unitOfWork.Bookings.AsQueryable()
                 .Include(b => b.Slot)
-                .ThenInclude(s => s.Turf)
+                .ThenInclude(s => s!.Turf)
                 .Include(b => b.User)
                 .FirstOrDefaultAsync(b => b.Id == bookingId && b.UserId == userId, ct);
 

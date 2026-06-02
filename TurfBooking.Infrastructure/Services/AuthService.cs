@@ -16,12 +16,13 @@ using System.Text;
 
 namespace Infrastructure.Services;
 
-public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork, IOptions<JwtSettings> jwtSettings, IEmailService emailService) : IAuthService
+public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork, IOptions<JwtSettings> jwtSettings, IEmailService emailService, IBackgroundJobClient backgroundJobClient) : IAuthService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
     private readonly IEmailService _emailService = emailService;
+    private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
 
     public async Task<Result<string>> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
     {
@@ -46,7 +47,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
         // Registration now returns IMMEDIATELY.
         // Hangfire picks up the job and sends email in background.
         // If email fails, Hangfire automatically retries 10 times.
-        BackgroundJob.Enqueue<IEmailService>(emailSvc =>
+        _backgroundJobClient.Enqueue<IEmailService>(emailSvc =>
             emailSvc.SendWelcomeEmailAsync(
                 user.Email,
                 user.Name));
@@ -135,7 +136,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
 
         await _unitOfWork.SaveChangesAsync();
 
-        BackgroundJob.Enqueue<IEmailService>(emailSvc =>
+        _backgroundJobClient.Enqueue<IEmailService>(emailSvc =>
             emailSvc.SendPasswordResetEmailAsync(
                 user.Email,
                 user.Name,
