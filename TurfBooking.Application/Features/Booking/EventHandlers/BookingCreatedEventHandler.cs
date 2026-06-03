@@ -15,7 +15,7 @@ public class BookingCreatedEventHandler : INotificationHandler<BookingCreatedEve
     public BookingCreatedEventHandler(
         ILogger<BookingCreatedEventHandler> logger,
         IUserRepository userRepository,
-        Microsoft.Extensions.DependencyInjection.IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _userRepository = userRepository;
