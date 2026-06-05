@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<IReviewService, ReviewService>();
         services.AddScoped<ISmsService, SmsService>();
         services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IPaymentService, PaymentService>();
 
         // Background service: generates daily slots for all turfs on startup + every 24 h
         services.AddHostedService<DailySlotGeneratorService>();
