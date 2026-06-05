@@ -19,6 +19,9 @@ namespace Persistence.Context
 
         public IReviewRepository Reviews { get; }
 
+        public IGenericRepository<OwnerRequest> OwnerRequests { get; }
+        public IGenericRepository<AuditLog> AuditLogs { get; }
+
         public UnitOfWork
         (
             ApplicationDbContext context,
@@ -35,6 +38,8 @@ namespace Persistence.Context
             Turfs = turfs;
             Slots = slots;
             Reviews = reviews;
+            OwnerRequests = new GenericRepository<OwnerRequest>(_context);
+            AuditLogs = new GenericRepository<AuditLog>(_context);
         }
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

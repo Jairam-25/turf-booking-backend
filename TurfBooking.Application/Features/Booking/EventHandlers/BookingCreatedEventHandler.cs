@@ -10,7 +10,7 @@ public class BookingCreatedEventHandler : INotificationHandler<BookingCreatedEve
 {
     private readonly ILogger<BookingCreatedEventHandler> _logger;
     private readonly IUserRepository _userRepository;
-    private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _scopeFactory;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public BookingCreatedEventHandler(
         ILogger<BookingCreatedEventHandler> logger,
