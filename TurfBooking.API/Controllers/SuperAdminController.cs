@@ -21,6 +21,32 @@ public class SuperAdminController : ControllerBase
         _mediator = mediator;
     }
 
+    [HttpGet("dashboard-metrics")]
+    public async Task<IActionResult> GetDashboardMetrics([FromServices] Application.Interfaces.IUnitOfWork unitOfWork)
+    {
+        var users = await unitOfWork.Users.GetAllAsync();
+        var turfs = await unitOfWork.Turfs.GetAllAsync();
+        var bookings = await unitOfWork.Bookings.GetAllAsync();
+
+        int totalUsers = users.Count();
+        int totalOwners = users.Count(u => u.Role == "Owner");
+        int totalTurfs = turfs.Count();
+        int totalBookings = bookings.Count();
+
+        // Rough revenue estimation for the super admin dashboard
+        decimal avgPrice = turfs.Any() ? turfs.Average(t => t.PricePerHour) : 500m;
+        decimal totalRevenue = totalBookings * avgPrice;
+
+        return Ok(ApiResponse<object>.SuccessResponse(new
+        {
+            users = totalUsers,
+            owners = totalOwners,
+            turfs = totalTurfs,
+            bookings = totalBookings,
+            revenue = Math.Round(totalRevenue, 2)
+        }, "Metrics retrieved"));
+    }
+
     [HttpGet("owner-requests")]
     public async Task<IActionResult> GetOwnerRequests([FromServices] Application.Interfaces.IUnitOfWork unitOfWork)
     {

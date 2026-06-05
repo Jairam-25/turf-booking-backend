@@ -10,7 +10,7 @@ namespace TurfBooking.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-[Authorize(Roles = "Owner")]
+[Authorize(Roles = "Owner,SuperAdmin")]
 public class OwnerController : ControllerBase
 {
     [HttpGet("dashboard")]
@@ -80,6 +80,15 @@ public class OwnerController : ControllerBase
                 Bookings = recentBookingsDto.Length,
                 Utilization = mySlots.Count > 0 ? (myBookings.Count * 100 / mySlots.Count) : 0,
                 Pending = 0
+            },
+            Analytics = new
+            {
+                TotalCustomers = recentBookingsDto.Select(b => b.User).Where(u => u != "Offline Booking").Distinct().Count(),
+                MonthlyRevenue = recentBookingsDto.Sum(b => b.Amount),
+                MonthlyCosts = Math.Round(recentBookingsDto.Sum(b => b.Amount) * 0.25m), // Estimated 25% overhead
+                PendingBookings = 0,
+                DueToday = mySlots.Count(s => s.StartTime.Date == DateTime.Today && !myBookings.Any(b => b.SlotId == s.Id)),
+                Unassigned = 0
             },
             RecentBookings = recentBookingsDto
         };
