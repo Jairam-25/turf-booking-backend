@@ -43,6 +43,12 @@ public class OwnerController : ControllerBase
             var slot = mySlots.First(s => s.Id == b.SlotId);
             var user = allUsers.FirstOrDefault(u => u.Id == b.UserId);
             
+            var displayUser = user?.Name ?? "Unknown User";
+            if (b.UserId == myTurf.OwnerId)
+            {
+                displayUser = "Offline Booking";
+            }
+            
             var basePrice = myTurf.PricePerHour;
             var hour = slot.StartTime.Hour;
             decimal price = basePrice;
@@ -52,7 +58,7 @@ public class OwnerController : ControllerBase
 
             return new {
                 Id = $"B-{b.Id}",
-                User = user?.Name ?? "Unknown User",
+                User = displayUser,
                 Date = slot.StartTime.ToString("yyyy-MM-dd"),
                 Time = $"{slot.StartTime:HH:mm} - {slot.EndTime:HH:mm}",
                 Amount = Math.Round(price),
@@ -62,6 +68,7 @@ public class OwnerController : ControllerBase
 
         var dashboardData = new
         {
+            TurfId = myTurf.Id,
             TurfName = myTurf.Name,
             PricePerHour = myTurf.PricePerHour,
             DayTimePrice = myTurf.DayTimePrice,
