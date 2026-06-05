@@ -4,6 +4,8 @@ using Application.Interfaces;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Distributed;
+using Hangfire;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,19 +18,39 @@ namespace Infrastructure.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<SlotService> _logger;
+        private readonly Microsoft.Extensions.Caching.Distributed.IDistributedCache _cache;
+        private readonly Hangfire.IBackgroundJobClient _backgroundJobClient;
 
         // Slots run from 6 AM to 10 PM (exclusive), 1-hour each → 16 slots/day
         private const int SlotStartHour = 6;
         private const int SlotEndHour = 22;
 
-        public SlotService(IUnitOfWork unitOfWork, ILogger<SlotService> logger)
+        public SlotService(IUnitOfWork unitOfWork, ILogger<SlotService> logger, Microsoft.Extensions.Caching.Distributed.IDistributedCache cache, Hangfire.IBackgroundJobClient backgroundJobClient)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
+            _cache = cache;
+            _backgroundJobClient = backgroundJobClient;
         }
 
         public async Task<Result<IEnumerable<SlotResponseDto>>> GetAvailableSlotsAsync(int turfId, CancellationToken ct = default)
         {
+            var cacheKey = $"slots_turf_{turfId}";
+            try
+            {
+                var cached = await _cache.GetStringAsync(cacheKey, ct);
+                if (cached != null)
+                {
+                    _logger.LogInformation("Cache HIT for slots of Turf {TurfId}", turfId);
+                    var cachedSlots = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<SlotResponseDto>>(cached);
+                    if (cachedSlots != null) return Result<IEnumerable<SlotResponseDto>>.Success(cachedSlots);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Redis unavailable while reading slots cache.");
+            }
+
             // Verify if the turf exists and is not deleted
             var turfExists = await _unitOfWork.Turfs.AsQueryable()
                 .AnyAsync(t => t.Id == turfId && !t.IsDeleted, ct);
@@ -45,11 +67,10 @@ namespace Infrastructure.Services
                 
             if (!hasSlots)
             {
-                // Generate 7 days of slots for this turf
-                for (int d = 0; d < 7; d++)
-                {
-                    await GenerateSlotsForTurfAsync(turfId, today.AddDays(d), ct);
-                }
+                // Offload slot generation to Hangfire to ensure instant load under 2 seconds!
+                _logger.LogInformation("Enqueuing background job to generate slots for Turf {TurfId}", turfId);
+                _backgroundJobClient.Enqueue<ISlotService>(svc => svc.GenerateSlotsForAllTurfsAsync(7, CancellationToken.None));
+                return Result<IEnumerable<SlotResponseDto>>.Success(new List<SlotResponseDto>());
             }
 
             var slots = await _unitOfWork.Slots.AsQueryable()
@@ -63,6 +84,18 @@ namespace Infrastructure.Services
                     IsBooked = s.IsBooked
                 })
                 .ToListAsync(ct);
+
+            try
+            {
+                await _cache.SetStringAsync(cacheKey, System.Text.Json.JsonSerializer.Serialize(slots), new Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2)
+                }, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Redis unavailable while writing slots cache.");
+            }
 
             return Result<IEnumerable<SlotResponseDto>>.Success(slots);
         }

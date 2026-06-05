@@ -23,6 +23,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Slot> Slots { get; set; }
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<Review> Reviews { get; set; }
+    public DbSet<OwnerRequest> OwnerRequests { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
@@ -48,6 +50,12 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Review>()
             .HasQueryFilter(r => !r.IsDeleted);
+
+        modelBuilder.Entity<OwnerRequest>()
+            .HasQueryFilter(o => !o.IsDeleted);
+
+        modelBuilder.Entity<AuditLog>()
+            .HasQueryFilter(a => !a.IsDeleted);
 
         base.OnModelCreating(modelBuilder);
     }

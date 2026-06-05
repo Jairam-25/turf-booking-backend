@@ -14,5 +14,9 @@ public interface IUnitOfWork
 
     IReviewRepository Reviews { get; }
 
+    IGenericRepository<OwnerRequest> OwnerRequests { get; }
+
+    IGenericRepository<AuditLog> AuditLogs { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

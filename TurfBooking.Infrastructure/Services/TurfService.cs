@@ -34,34 +34,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
             $"max{query.MaxPrice ?? 0}_" +
             $"sort{query.SortBy ?? "id"}_{query.SortOrder}";
 
-        // Try Redis first
-        try
-        {
-            var cached = await _cache.GetStringAsync(cacheKey, cancellationToken);
-
-            if (cached != null)
-            {
-                _logger.LogInformation(
-                    "Cache HIT — Turf list served from Redis. Key: {Key}",
-                    cacheKey);
-
-                return JsonSerializer
-                    .Deserialize<PagedResult<TurfResponseDto>>(cached)!;
-            }
-
-            _logger.LogInformation(
-                "Cache MISS — Key not found in Redis: {Key}",
-                cacheKey);
-        }
-        catch (Exception ex)
-        {
-            // Redis is down — log warning and fall through to DB
-            _logger.LogWarning(
-                ex,
-                "Redis unavailable while reading cache. " +
-                "Falling back to database. Key: {Key}",
-                cacheKey);
-        }
+        // Skip caching for Turf List to guarantee real-time price updates on the dashboard.
 
         // Query DB
         var turfQuery = _unitOfWork.Turfs.AsQueryable();
@@ -118,31 +91,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
             PageSize = query.PageSize
         };
 
-        // Store in Redis
-        try
-        {
-            await _cache.SetStringAsync(
-                cacheKey,
-                JsonSerializer.Serialize(result),
-                new DistributedCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow =
-                        TimeSpan.FromMinutes(5)
-                }, cancellationToken);
-
-            _logger.LogInformation(
-                "Turf list cached in Redis for 5 minutes. Key: {Key}",
-                cacheKey);
-        }
-        catch (Exception ex)
-        {
-            // Redis is down — data already fetched, just skip caching
-            _logger.LogWarning(
-                ex,
-                "Redis unavailable while writing cache. " +
-                "Response will be returned without caching. Key: {Key}",
-                cacheKey);
-        }
+        // Skipping Redis caching for GetAllTurfAsync to guarantee real-time accuracy.
 
         return result;
     }
@@ -200,21 +149,46 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
 
     public async Task<TurfResponseDto?> GetTurfByIdAsync(int id, CancellationToken cancellationToken = default)
     {
+        var cacheKey = $"{CachePrefix}details_{id}";
+        try
+        {
+            var cached = await _cache.GetStringAsync(cacheKey, cancellationToken);
+            if (cached != null)
+            {
+                _logger.LogInformation("Cache HIT for GetTurfByIdAsync. Key: {Key}", cacheKey);
+                return JsonSerializer.Deserialize<TurfResponseDto>(cached);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Redis unavailable while reading cache for turf details.");
+        }
+
         var turf = await _unitOfWork.Turfs.AsQueryable()
             .Include(t => t.Reviews)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted, cancellationToken);
 
         if (turf == null)
         {
-            _logger.LogWarning(
-                "Turf not found. Id: {Id}",
-                id);
-
+            _logger.LogWarning("Turf not found. Id: {Id}", id);
             return null;
         }
 
         var dto = turf.Adapt<TurfResponseDto>();
         dto.Rating = turf.Reviews.Any() ? Math.Round(turf.Reviews.Average(r => (double)r.Rating), 1) : 0.0;
+        
+        try
+        {
+            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(dto), new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Redis unavailable while writing cache for turf details.");
+        }
+
         return dto;
     }
 

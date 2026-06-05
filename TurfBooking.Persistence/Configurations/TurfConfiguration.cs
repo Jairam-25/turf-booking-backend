@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -26,5 +26,11 @@ public class TurfConfiguration : IEntityTypeConfiguration<Turf>
             .WithOne(s => s.Turf)
             .HasForeignKey(s => s.TurfId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // One Turf -> One Owner
+        builder.HasOne(t => t.Owner)
+            .WithMany()
+            .HasForeignKey(t => t.OwnerId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
