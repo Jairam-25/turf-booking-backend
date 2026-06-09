@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Infrastructure.Hubs;
 using Microsoft.Extensions.DependencyInjection;
 using Domain.Events;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Infrastructure.Services
 {
@@ -15,15 +16,17 @@ namespace Infrastructure.Services
         private readonly IHubContext<SlotHub> _hubContext;
         private readonly IEmailService _emailService;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IDistributedCache _cache;
         private readonly IPaymentService _paymentService;
 
-        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext, IEmailService emailService, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory scopeFactory, IPaymentService paymentService)
+        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext, IEmailService emailService, IServiceScopeFactory scopeFactory, IPaymentService paymentService, IDistributedCache cache)
         {
             _unitOfWork = unitOfWork;
             _hubContext = hubContext;
             _emailService = emailService;
             _scopeFactory = scopeFactory;
             _paymentService = paymentService;
+            _cache = cache;
         }
 
         public async Task<Result<object>> BookSlotAsync(CreateBookingDto dto, int userId, CancellationToken ct = default)
@@ -67,6 +70,12 @@ namespace Infrastructure.Services
             slot.IsBooked = true;
             await _unitOfWork.Bookings.AddAsync(booking, ct);
             await _unitOfWork.SaveChangesAsync(ct);
+
+            try
+            {
+                await _cache.RemoveAsync($"slots_turf_{slot.TurfId}", ct);
+            }
+            catch { }
 
             // Notify connected clients viewing this turf that a slot was booked
             try
@@ -136,6 +145,15 @@ namespace Infrastructure.Services
 
             await _unitOfWork.Bookings.DeleteAsync(booking, ct);
             await _unitOfWork.SaveChangesAsync(ct);
+
+            if (booking.Slot != null)
+            {
+                try
+                {
+                    await _cache.RemoveAsync($"slots_turf_{booking.Slot.TurfId}", ct);
+                }
+                catch { }
+            }
 
             if (booking.User != null && !string.IsNullOrEmpty(booking.User.Email) && booking.Slot != null && booking.Slot.Turf != null)
             {
