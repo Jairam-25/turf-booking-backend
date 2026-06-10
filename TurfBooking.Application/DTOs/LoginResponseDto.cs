@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,6 +12,7 @@ namespace Application.DTOs
         public string Email { get; set; } = string.Empty;
         public string Number { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+        public string ProfilePictureUrl { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
     }

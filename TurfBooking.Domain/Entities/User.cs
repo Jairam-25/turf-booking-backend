@@ -22,6 +22,8 @@ public class User : BaseEntity
     // Firebase Cloud Messaging (FCM) Token for Push Notifications
     public string? FcmToken { get; set; }
     
+    public string? ProfilePictureUrl { get; set; }
+    
     public ICollection<Booking> Bookings { get; set; }
     = new List<Booking>();
 }
