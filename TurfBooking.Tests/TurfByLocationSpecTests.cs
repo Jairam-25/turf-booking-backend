@@ -2,7 +2,7 @@ using Domain.Entities;
 using Domain.Specifications;
 using FluentAssertions;
 
-namespace TurfBooking.Tests.Specifications
+namespace TurfBooking.Tests
 {
     public class TurfByLocationSpecTests
     {
