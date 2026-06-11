@@ -17,4 +17,10 @@ public interface IAuthService
 
     Task<Result<LoginResponseDto>> RefreshTokenAsync(
         string refreshToken, CancellationToken cancellationToken = default);
+
+    Task<Result<LoginResponseDto>> GoogleSignInAsync(
+        GoogleSignInRequestDto request, CancellationToken cancellationToken = default);
+
+    Task<Result<string>> LogoutAsync(
+        int userId, CancellationToken cancellationToken = default);
 }

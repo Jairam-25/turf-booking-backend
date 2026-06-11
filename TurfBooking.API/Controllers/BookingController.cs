@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Application.Common.Result;
-using Application.Features.Booking.Commands;
-using Application.Features.Booking.Queries;
-using MediatR;
+using Application.Interfaces;
 using System.Security.Claims;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace TurfBooking.API.Controllers;
 
@@ -18,11 +18,11 @@ namespace TurfBooking.API.Controllers;
 public class BookingController : ControllerBase
 {
     private static readonly ActivitySource _activity = new("TurfBooking.API");
-    private readonly IMediator _mediator;
+    private readonly IBookingService _bookingService;
 
-    public BookingController(IMediator mediator)
+    public BookingController(IBookingService bookingService)
     {
-        _mediator = mediator;
+        _bookingService = bookingService;
     }
 
     // ── POST /api/booking ─────────────────────────────────
@@ -41,7 +41,7 @@ public class BookingController : ControllerBase
         span?.SetTag("slotId", dto.SlotId);
         span?.SetTag("userId", userId);
 
-        var result = await _mediator.Send(new BookSlotCommand(dto, userId), ct);
+        var result = await _bookingService.BookSlotAsync(dto, userId, ct);
         if (!result.IsSuccess)
         {
             var statusCode = result.Error == "Slot not found" ? 404 : 400;
@@ -59,7 +59,7 @@ public class BookingController : ControllerBase
             return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
 
         var userId = int.Parse(userIdClaim);
-        var result = await _mediator.Send(new GetMyBookingsQuery(userId), ct);
+        var result = await _bookingService.GetMyBookingsAsync(userId, ct);
         if (!result.IsSuccess)
             return StatusCode(400, ApiResponse<object>.FailureResponse(result.Error, null, 400));
             
@@ -75,7 +75,7 @@ public class BookingController : ControllerBase
             return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
 
         var userId = int.Parse(userIdClaim);
-        var result = await _mediator.Send(new CancelBookingCommand(id, userId, reason), ct);
+        var result = await _bookingService.CancelBookingAsync(id, userId, reason, ct);
         if (!result.IsSuccess)
         {
             var statusCode = result.Error == "Booking not found" ? 404 : 400;

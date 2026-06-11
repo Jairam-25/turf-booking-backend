@@ -13,6 +13,7 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ITurfService, TurfService>();
         services.AddScoped<IBookingService, BookingService>();

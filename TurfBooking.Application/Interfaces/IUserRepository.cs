@@ -7,7 +7,7 @@ namespace Application.Interfaces
     public interface IUserRepository
         : IGenericRepository<User>
     {
-        Task<User?> GetByEmailAsync(LoginRequestDto req, CancellationToken cancellationToken = default);
+        Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
 
         Task<User?> GetByPhoneNumberAsync(string phoneNumber, CancellationToken cancellationToken = default);
 

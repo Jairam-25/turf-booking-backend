@@ -13,21 +13,22 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Google.Apis.Auth;
 
 namespace Infrastructure.Services;
 
-public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork, IOptions<JwtSettings> jwtSettings, IEmailService emailService, IBackgroundJobClient backgroundJobClient) : IAuthService
+public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork, ITokenService tokenService, IEmailService emailService, IBackgroundJobClient backgroundJobClient) : IAuthService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
-    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly ITokenService _tokenService = tokenService;
     private readonly IEmailService _emailService = emailService;
     private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
 
     public async Task<Result<string>> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
     {
         var existingUser = await _userRepository
-            .GetByEmailAsync(new LoginRequestDto { EmailOrPhone = request.Email });
+            .GetByEmailAsync(request.Email);
 
         if (existingUser != null)
         {
@@ -58,10 +59,13 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     public async Task<Result<LoginResponseDto>>
      LoginAsync(LoginRequestDto req, CancellationToken cancellationToken = default)
     {
-        var user = await _userRepository.GetByEmailAsync(req);
+        var user = await _userRepository.GetByEmailAsync(req.EmailOrPhone);
 
         if (user == null)
         {
+            // Dummy verify to prevent timing attacks (user enumeration)
+            BCrypt.Net.BCrypt.Verify("dummy", "$2a$11$DummyHashDummyHashDummyHashDummyHashDummyHashDummyHash");
+
             return Result<LoginResponseDto>.Failure(
                 AuthMessages.InvalidCredentials);
         }
@@ -84,7 +88,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
             {
                 user.IsLocked = true;
                 user.LockoutEnd =
-                    DateTime.Now.AddMinutes(AppConstants.LockoutMinutes);
+                    DateTime.UtcNow.AddMinutes(AppConstants.LockoutMinutes);
             }
 
             await _unitOfWork.SaveChangesAsync();
@@ -95,13 +99,13 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
         user.FailedLoginAttempts = 0;
         user.IsLocked = false;
 
-        var token = GenerateJwtToken(user);
+        var token = _tokenService.GenerateJwtToken(user);
 
         // Generate raw token to send to client
-        var rawRefreshToken = GenerateRefreshToken();
+        var rawRefreshToken = _tokenService.GenerateRefreshToken();
 
         // Store HASHED version in DB (not plain text)
-        user.RefreshToken = HashToken(rawRefreshToken);
+        user.RefreshToken = _tokenService.HashToken(rawRefreshToken);
 
         user.RefreshTokenExpiryTime =
             DateTime.UtcNow.AddDays(7);
@@ -120,7 +124,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
     public async Task<Result<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository
-            .GetByEmailAsync(new LoginRequestDto { EmailOrPhone = request.Email });
+            .GetByEmailAsync(request.Email);
 
         if (user == null)
         {
@@ -143,7 +147,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
                 resetToken));
 
         return Result<string>.Success(
-            resetToken);
+            "If an account exists, a reset link has been sent.");
     }
 
     // RESET PASSWORD
@@ -187,7 +191,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
         RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         // Hash the incoming token to find matching DB record
-        var hashedToken = HashToken(refreshToken);
+        var hashedToken = _tokenService.HashToken(refreshToken);
 
         var user = await _userRepository
             .GetByRefreshTokenAsync(hashedToken); // Compare with hashed value
@@ -204,13 +208,13 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
                 AuthMessages.TokenExpired);
         }
 
-        var newJwtToken = GenerateJwtToken(user);
+        var newJwtToken = _tokenService.GenerateJwtToken(user);
 
         // New raw token for client
-        var newRawRefreshToken = GenerateRefreshToken();
+        var newRawRefreshToken = _tokenService.GenerateRefreshToken();
 
         // Store new hashed token in DB
-        user.RefreshToken = HashToken(newRawRefreshToken);
+        user.RefreshToken = _tokenService.HashToken(newRawRefreshToken);
 
         user.RefreshTokenExpiryTime =
             DateTime.UtcNow.AddDays(7);
@@ -225,56 +229,63 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
             .Success(response);
     }
 
-    private string GenerateJwtToken(User user)
+    // GOOGLE SIGN IN
+    public async Task<Result<LoginResponseDto>> GoogleSignInAsync(GoogleSignInRequestDto request, CancellationToken cancellationToken = default)
     {
-        var claims = new[]
+        try
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name,           user.Name),
-            new Claim(ClaimTypes.Email,          user.Email),
-            new Claim(ClaimTypes.Role,           user.Role)
-        };
+            var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken);
+            var user = await _userRepository.GetByEmailAsync(payload.Email);
 
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_jwtSettings.Key));
+            if (user == null)
+            {
+                // Auto-register new Google user
+                user = new User
+                {
+                    Email = payload.Email,
+                    Name = payload.Name ?? payload.Email,
+                    Role = "User",
+                    // Dummy password since they use Google
+                    Password = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString())
+                };
+                await _userRepository.AddAsync(user);
+                await _unitOfWork.SaveChangesAsync();
+            }
 
-        var creds = new SigningCredentials(
-            key,
-            SecurityAlgorithms.HmacSha256);
+            user.FailedLoginAttempts = 0;
+            user.IsLocked = false;
 
-        var token = new JwtSecurityToken(
-            issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(AppConstants.ExpiryMinutes),
-            signingCredentials: creds);
+            var jwtToken = _tokenService.GenerateJwtToken(user);
+            var newRawRefreshToken = _tokenService.GenerateRefreshToken();
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+            user.RefreshToken = _tokenService.HashToken(newRawRefreshToken);
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            
+            await _unitOfWork.SaveChangesAsync();
+
+            var response = user.Adapt<LoginResponseDto>();
+            response.Token = jwtToken;
+            response.RefreshToken = newRawRefreshToken;
+
+            return Result<LoginResponseDto>.Success(response);
+        }
+        catch (InvalidJwtException)
+        {
+            return Result<LoginResponseDto>.Failure("Invalid Google IdToken");
+        }
     }
 
-    private static string GenerateRefreshToken()
+    // LOGOUT
+    public async Task<Result<string>> LogoutAsync(int userId, CancellationToken cancellationToken = default)
     {
-        var randomNumber = new byte[AppConstants.ByteNumber];
-
-        using var rng = RandomNumberGenerator.Create();
-
-        rng.GetBytes(randomNumber);
-
-        return Convert.ToBase64String(randomNumber);
-    }
-
-    // --------------------------------------------------------
-    // METHOD — Hash token using SHA256
-    // WHY SHA256 : Unlike BCrypt, SHA256 is deterministic so
-    // we can hash the incoming token and query it in the DB.
-    // BCrypt generates different hashes each time (random salt)
-    // making DB lookup impossible — SHA256 solves this.
-    // --------------------------------------------------------
-    private static string HashToken(string token)
-    {
-        var bytes = SHA256.HashData(
-            Encoding.UTF8.GetBytes(token));
-
-        return Convert.ToHexString(bytes);
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user != null)
+        {
+            user.RefreshToken = null;
+            user.RefreshTokenExpiryTime = null;
+            await _unitOfWork.SaveChangesAsync();
+        }
+        
+        return Result<string>.Success("Logged out successfully");
     }
 }

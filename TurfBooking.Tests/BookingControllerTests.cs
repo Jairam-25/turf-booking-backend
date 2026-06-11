@@ -1,8 +1,6 @@
 using Application.Common.Result;
 using Application.DTOs;
-using Application.Features.Booking.Commands;
-using Application.Features.Booking.Queries;
-using MediatR;
+using Application.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -18,13 +16,13 @@ namespace TurfBooking.Tests;
 
 public class BookingControllerTests
 {
-    private readonly Mock<IMediator> _mockMediator;
+    private readonly Mock<IBookingService> _mockBookingService;
     private readonly BookingController _controller;
 
     public BookingControllerTests()
     {
-        _mockMediator = new Mock<IMediator>();
-        _controller = new BookingController(_mockMediator.Object);
+        _mockBookingService = new Mock<IBookingService>();
+        _controller = new BookingController(_mockBookingService.Object);
     }
 
     private void SetupAuthenticatedUser(ControllerBase controller, string userId)
@@ -50,8 +48,8 @@ public class BookingControllerTests
         var dto = new CreateBookingDto { SlotId = 10 };
         var bookingData = new { bookingId = 1, slotId = 10, turfName = "Champion Field", location = "Sector 5" };
         
-        _mockMediator
-            .Setup(m => m.Send(It.Is<BookSlotCommand>(c => c.Request.SlotId == 10 && c.UserId == 100), It.IsAny<CancellationToken>()))
+        _mockBookingService
+            .Setup(m => m.BookSlotAsync(It.Is<CreateBookingDto>(c => c.SlotId == 10), 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<object>.Success(bookingData));
 
         // Act
@@ -71,8 +69,8 @@ public class BookingControllerTests
         SetupAuthenticatedUser(_controller, "100");
         var dto = new CreateBookingDto { SlotId = 10 };
         
-        _mockMediator
-            .Setup(m => m.Send(It.IsAny<BookSlotCommand>(), It.IsAny<CancellationToken>()))
+        _mockBookingService
+            .Setup(m => m.BookSlotAsync(It.IsAny<CreateBookingDto>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<object>.Failure("Slot is already booked"));
 
         // Act
@@ -93,8 +91,8 @@ public class BookingControllerTests
         SetupAuthenticatedUser(_controller, "100");
         var myBookingsList = new List<object> { new { bookingId = 1, turfName = "Champion Field" } };
 
-        _mockMediator
-            .Setup(m => m.Send(It.Is<GetMyBookingsQuery>(q => q.UserId == 100), It.IsAny<CancellationToken>()))
+        _mockBookingService
+            .Setup(m => m.GetMyBookingsAsync(100, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<object>.Success(myBookingsList));
 
         // Act
@@ -113,8 +111,8 @@ public class BookingControllerTests
         // Arrange
         SetupAuthenticatedUser(_controller, "100");
 
-        _mockMediator
-            .Setup(m => m.Send(It.Is<CancelBookingCommand>(c => c.BookingId == 500 && c.UserId == 100 && c.Reason == "Change of plans"), It.IsAny<CancellationToken>()))
+        _mockBookingService
+            .Setup(m => m.CancelBookingAsync(500, 100, "Change of plans", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<string>.Success("Booking cancelled successfully"));
 
         // Act

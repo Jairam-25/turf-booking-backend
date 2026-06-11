@@ -15,7 +15,7 @@ public class User : BaseEntity
     public DateTime? LockoutEnd { get; set; }
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiryTime { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? PasswordResetToken { get; set; }
     public DateTime? ResetTokenExpires { get; set; }
     

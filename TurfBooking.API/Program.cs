@@ -97,8 +97,8 @@ builder.Services.AddSwaggerGen(options =>
 // Register Redis Distributed Cache
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    // Connection string for local Redis
-    options.Configuration = "localhost:6379";
+    // Connection string for Redis from configuration
+    options.Configuration = builder.Configuration.GetSection("Redis:ConnectionString").Value ?? "localhost:6379";
 
     // Prefix for all cache keys (avoids key conflicts)
     options.InstanceName = "TurfBooking_";
@@ -122,7 +122,7 @@ builder.Services.AddHealthChecks()
         builder.Configuration.GetConnectionString("DefaultConnection")!,
         name: "sqlserver")
     .AddRedis(
-        "localhost:6379",
+        builder.Configuration.GetSection("Redis:ConnectionString").Value ?? "localhost:6379",
         name: "redis");
 
 // Define rate limiting policies
@@ -280,13 +280,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// Add API Versioning
-builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
-    options.ReportApiVersions = true;
-});
+// Add API Versioning was already called above.
 
 // Build App
 var app = builder.Build();
