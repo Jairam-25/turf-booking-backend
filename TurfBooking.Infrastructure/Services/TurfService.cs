@@ -37,7 +37,8 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         // Skip caching for Turf List to guarantee real-time price updates on the dashboard.
 
         // Query DB
-        var turfQuery = _unitOfWork.Turfs.AsQueryable();
+        var turfQuery = _unitOfWork.Turfs.AsQueryable()
+            .Where(t => t.VerificationStatus == "Approved");
 
         if (!string.IsNullOrWhiteSpace(query.Location))
         {

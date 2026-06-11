@@ -159,6 +159,11 @@ namespace TurfBooking.API.Controllers
 
             user.Name = request.Name;
             user.PhoneNumber = request.PhoneNumber;
+            user.Address = request.Address;
+            user.State = request.State;
+            user.MaritalStatus = request.MaritalStatus;
+            user.PlayerType = request.PlayerType;
+            user.PlayingLevel = request.PlayingLevel;
             
             if (!string.IsNullOrEmpty(request.ProfilePictureUrl))
             {
@@ -166,7 +171,17 @@ namespace TurfBooking.API.Controllers
             }
             
             await unitOfWork.SaveChangesAsync();
-            return Ok(ApiResponse<object>.SuccessResponse(new { user.Name, user.Email, user.PhoneNumber, user.ProfilePictureUrl }, "Profile updated successfully"));
+            return Ok(ApiResponse<object>.SuccessResponse(new { 
+                user.Name, 
+                user.Email, 
+                user.PhoneNumber, 
+                user.ProfilePictureUrl,
+                user.Address,
+                user.State,
+                user.MaritalStatus,
+                user.PlayerType,
+                user.PlayingLevel
+            }, "Profile updated successfully"));
         }
 
         [HttpDelete("delete-account")]

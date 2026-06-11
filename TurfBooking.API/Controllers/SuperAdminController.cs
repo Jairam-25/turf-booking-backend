@@ -117,45 +117,48 @@ public class SuperAdminController : ControllerBase
                     status = o.VerificationStatus,
                     rejectionReason = o.RejectionReason,
                     createdAt = o.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
-                    turf = (object?)null
+                    turfs = new List<object>()
                 });
             }
             else
             {
+                var turfList = new List<object>();
                 foreach (var turf in ownerTurfs)
                 {
                     var turfDocs = documents.Where(d => d.TurfId == turf.Id).Select(d => new { d.DocumentType, d.FileUrl }).ToList();
                     var turfImgs = images.Where(i => i.TurfId == turf.Id).Select(i => i.ImageUrl).ToList();
 
-                    verificationsList.Add(new
+                    turfList.Add(new
                     {
-                        ownerId = o.Id,
-                        userId = o.UserId,
-                        fullName = o.FullName,
-                        mobileNumber = o.MobileNumber,
-                        email = o.Email,
-                        address = o.Address,
-                        status = o.VerificationStatus, // General owner status
-                        rejectionReason = o.RejectionReason,
-                        createdAt = o.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
-                        turf = new
-                        {
-                            turfId = turf.Id,
-                            turfName = turf.Name,
-                            description = turf.Description,
-                            turfType = turf.TurfType,
-                            address = turf.Address,
-                            city = turf.City,
-                            state = turf.State,
-                            pincode = turf.Pincode,
-                            googleMapLocation = turf.Location,
-                            contactNumber = turf.ContactNumber,
-                            verificationStatus = turf.VerificationStatus,
-                            documents = turfDocs,
-                            images = turfImgs
-                        }
+                        turfId = turf.Id,
+                        turfName = turf.Name,
+                        description = turf.Description,
+                        turfType = turf.TurfType,
+                        address = turf.Address,
+                        city = turf.City,
+                        state = turf.State,
+                        pincode = turf.Pincode,
+                        googleMapLocation = turf.Location,
+                        contactNumber = turf.ContactNumber,
+                        verificationStatus = turf.VerificationStatus,
+                        documents = turfDocs,
+                        images = turfImgs
                     });
                 }
+
+                verificationsList.Add(new
+                {
+                    ownerId = o.Id,
+                    userId = o.UserId,
+                    fullName = o.FullName,
+                    mobileNumber = o.MobileNumber,
+                    email = o.Email,
+                    address = o.Address,
+                    status = o.VerificationStatus, // General owner status
+                    rejectionReason = o.RejectionReason,
+                    createdAt = o.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                    turfs = turfList
+                });
             }
         }
 

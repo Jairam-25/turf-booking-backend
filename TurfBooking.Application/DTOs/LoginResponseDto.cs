@@ -15,5 +15,10 @@ namespace Application.DTOs
         public string ProfilePictureUrl { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
+        public string? Address { get; set; }
+        public string? State { get; set; }
+        public string? MaritalStatus { get; set; }
+        public string? PlayerType { get; set; }
+        public string? PlayingLevel { get; set; }
     }
 }

@@ -89,6 +89,7 @@ public class OwnerController : ControllerBase
             AfternoonPrice = myTurf.AfternoonPrice,
             NightTimePrice = myTurf.NightTimePrice,
             ImageUrl = myImageUrl,
+            VerificationStatus = myTurf.VerificationStatus,
             RemainingDays = Math.Max(0, 365 - (DateTime.UtcNow - owner.CreatedAt).Days),
             Stats = new
             {
@@ -107,7 +108,7 @@ public class OwnerController : ControllerBase
                 Unassigned = 0
             },
             RecentBookings = recentBookingsDto,
-            OwnedTurfs = ownerTurfs.Select(t => new { Id = t.Id, Name = t.Name }).ToList()
+            OwnedTurfs = ownerTurfs.Select(t => new { Id = t.Id, Name = t.Name, Status = t.VerificationStatus }).ToList()
         };
 
         return Ok(ApiResponse<object>.SuccessResponse(dashboardData, "Owner dashboard retrieved successfully"));

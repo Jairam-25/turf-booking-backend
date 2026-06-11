@@ -8,7 +8,9 @@ namespace Domain.Specifications
     {
         public TurfByLocationSpec(string location)
         {
-            Criteria = t => t.Location.ToLower().Contains(location.ToLower());
+            Criteria = t => t.Location.ToLower().Contains(location.ToLower()) || 
+                            t.State.ToLower().Contains(location.ToLower()) ||
+                            t.City.ToLower().Contains(location.ToLower());
         }
 
         public override Expression<Func<Turf, bool>> Criteria { get; }

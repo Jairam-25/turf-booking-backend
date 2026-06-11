@@ -23,6 +23,13 @@ public class User : BaseEntity
     public string? FcmToken { get; set; }
     
     public string? ProfilePictureUrl { get; set; }
+
+    // Additional User Details
+    public string? Address { get; set; }
+    public string? State { get; set; }
+    public string? MaritalStatus { get; set; } // "Married", "Unmarried", etc.
+    public string? PlayerType { get; set; } // e.g., "Football", "Cricket", "Tennis"
+    public string? PlayingLevel { get; set; } // e.g., "State Level", "District Level", "National Level", "Amateur"
     
     public ICollection<Booking> Bookings { get; set; }
     = new List<Booking>();
