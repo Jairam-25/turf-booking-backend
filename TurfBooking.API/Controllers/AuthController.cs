@@ -143,5 +143,62 @@ namespace TurfBooking.API.Controllers
             await unitOfWork.SaveChangesAsync();
             return Ok(ApiResponse<string>.SuccessResponse(string.Empty, "FCM Token updated"));
         }
+
+        [HttpPut("update-profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfile(
+            [FromBody] UpdateProfileDto request,
+            [FromServices] IUserRepository userRepository,
+            [FromServices] IUnitOfWork unitOfWork)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var user = await userRepository.GetByIdAsync(int.Parse(userId));
+            if (user == null) return NotFound();
+
+            user.Name = request.Name;
+            user.PhoneNumber = request.PhoneNumber;
+            user.Address = request.Address;
+            user.State = request.State;
+            user.MaritalStatus = request.MaritalStatus;
+            user.PlayerType = request.PlayerType;
+            user.PlayingLevel = request.PlayingLevel;
+            
+            if (!string.IsNullOrEmpty(request.ProfilePictureUrl))
+            {
+                user.ProfilePictureUrl = request.ProfilePictureUrl;
+            }
+            
+            await unitOfWork.SaveChangesAsync();
+            return Ok(ApiResponse<object>.SuccessResponse(new { 
+                user.Name, 
+                user.Email, 
+                user.PhoneNumber, 
+                user.ProfilePictureUrl,
+                user.Address,
+                user.State,
+                user.MaritalStatus,
+                user.PlayerType,
+                user.PlayingLevel
+            }, "Profile updated successfully"));
+        }
+
+        [HttpDelete("delete-account")]
+        [Authorize]
+        public async Task<IActionResult> DeleteAccount(
+            [FromServices] IUserRepository userRepository,
+            [FromServices] IUnitOfWork unitOfWork)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var user = await userRepository.GetByIdAsync(int.Parse(userId));
+            if (user == null) return NotFound();
+
+            await userRepository.DeleteAsync(user);
+            await unitOfWork.SaveChangesAsync();
+            return Ok(ApiResponse<string>.SuccessResponse(string.Empty, "Account deleted successfully"));
+        }
     }
 }

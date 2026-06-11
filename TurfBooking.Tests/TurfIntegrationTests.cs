@@ -29,8 +29,8 @@ namespace TurfBooking.Tests
             db.Database.EnsureCreated();
 
             // Seed Turf data
-            var turf1 = new Turf { Name = "Old Trafford Turf", Location = "Manchester", PricePerHour = 100 };
-            var turf2 = new Turf { Name = "Camp Nou Turf", Location = "Barcelona", PricePerHour = 150 };
+            var turf1 = new Turf { Name = "Old Trafford Turf", Location = "Manchester", PricePerHour = 100, VerificationStatus = "Approved" };
+            var turf2 = new Turf { Name = "Camp Nou Turf", Location = "Barcelona", PricePerHour = 150, VerificationStatus = "Approved" };
             db.Turfs.AddRange(turf1, turf2);
             db.SaveChanges();
         }

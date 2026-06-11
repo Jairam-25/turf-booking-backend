@@ -1,8 +1,10 @@
 using Application.Common.Settings;
+using Application.Interfaces;
 using Application.Validators;
 using Asp.Versioning;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Google.Apis.Auth.OAuth2;
 using Hangfire;
 using HealthChecks.UI.Client;
 using Infrastructure;
@@ -13,16 +15,15 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Trace;
 using Persistence;
 using Serilog;
 using System.Text;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.ResponseCompression;
-using OpenTelemetry.Trace;
 using TurfBooking.API.Middlewares;
-using Google.Apis.Auth.OAuth2;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -193,11 +194,11 @@ if (File.Exists("firebase-adminsdk.json"))
     {
         FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions()
         {
-            Credential = GoogleCredential.FromStream(stream)
+            Credential = CredentialFactory.FromStream<ServiceAccountCredential>(stream).ToGoogleCredential()
         });
     }
 }
-builder.Services.AddScoped<Application.Interfaces.IFcmNotificationService, Infrastructure.Services.FcmNotificationService>();
+builder.Services.AddScoped<IFcmNotificationService, FcmNotificationService>();
 
 // Dependency Injection
 builder.Services.AddPersistence(
@@ -231,7 +232,7 @@ builder.Services.AddCors(options =>
         "AllowAngular",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200")
+            policy.WithOrigins("http://localhost:4200", "http://localhost:4201")
                               .AllowAnyHeader()
                               .AllowAnyMethod()
                               .AllowCredentials();
@@ -310,6 +311,16 @@ app.UseHttpsRedirection();
 
 // CORS
 app.UseCors("AllowAngular");
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+    }
+});
 
 app.UseRateLimiter();
 

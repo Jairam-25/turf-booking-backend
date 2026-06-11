@@ -10,5 +10,8 @@ namespace Application.DTOs
         public decimal? AfternoonPrice { get; set; }
         public decimal? NightTimePrice { get; set; }
         public double Rating { get; set; }
+        public string? ImageUrl { get; set; }
+        public string State { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
     }
 }

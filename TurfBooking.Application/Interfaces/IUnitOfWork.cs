@@ -18,5 +18,13 @@ public interface IUnitOfWork
 
     IGenericRepository<AuditLog> AuditLogs { get; }
 
+    IGenericRepository<Owner> Owners { get; }
+
+    IGenericRepository<OwnerPayment> OwnerPayments { get; }
+
+    IGenericRepository<TurfDocument> TurfDocuments { get; }
+
+    IGenericRepository<TurfImage> TurfImages { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
