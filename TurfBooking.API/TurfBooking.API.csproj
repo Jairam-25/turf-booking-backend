@@ -50,6 +50,7 @@
 
   <ItemGroup>
     <Folder Include="Extensions\" />
+    <Folder Include="wwwroot\uploads\" />
   </ItemGroup>
 
 </Project>

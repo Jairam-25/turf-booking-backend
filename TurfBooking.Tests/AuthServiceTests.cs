@@ -17,7 +17,7 @@ public class AuthServiceTests
     private readonly Mock<IUserRepository> _mockUserRepository;
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<IEmailService> _mockEmailService;
-    private readonly Mock<IOptions<JwtSettings>> _mockJwtSettings;
+    private readonly Mock<ITokenService> _mockTokenService;
     private readonly Mock<IBackgroundJobClient> _mockBackgroundJobClient;
     private readonly AuthService _authService;
 
@@ -26,21 +26,17 @@ public class AuthServiceTests
         _mockUserRepository = new Mock<IUserRepository>();
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockEmailService = new Mock<IEmailService>();
-        _mockJwtSettings = new Mock<IOptions<JwtSettings>>();
+        _mockTokenService = new Mock<ITokenService>();
         _mockBackgroundJobClient = new Mock<IBackgroundJobClient>();
 
-        var jwtSettings = new JwtSettings
-        {
-            Key = "super_secret_key_that_is_long_enough_to_be_secure_12345!",
-            Issuer = "TurfBooking",
-            Audience = "TurfBookingUsers"
-        };
-        _mockJwtSettings.Setup(x => x.Value).Returns(jwtSettings);
+        _mockTokenService.Setup(x => x.GenerateJwtToken(It.IsAny<User>())).Returns("dummy_token");
+        _mockTokenService.Setup(x => x.GenerateRefreshToken()).Returns("dummy_refresh_token");
+        _mockTokenService.Setup(x => x.HashToken(It.IsAny<string>())).Returns("hashed_token");
 
         _authService = new AuthService(
             _mockUserRepository.Object,
             _mockUnitOfWork.Object,
-            _mockJwtSettings.Object,
+            _mockTokenService.Object,
             _mockEmailService.Object,
             _mockBackgroundJobClient.Object
         );
@@ -61,7 +57,7 @@ public class AuthServiceTests
     {
         // Arrange
         var existingUser = new User { Email = "existing@example.com" };
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.Is<LoginRequestDto>(r => r.EmailOrPhone == "existing@example.com"), It.IsAny<CancellationToken>()))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync("existing@example.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingUser);
 
         var registerRequest = new RegisterRequestDto
@@ -85,7 +81,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_WithNewEmail_ReturnsSuccess()
     {
         // Arrange
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>(), It.IsAny<CancellationToken>()))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
         var registerRequest = new RegisterRequestDto
@@ -111,7 +107,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_PasswordIsHashedBeforeSaving()
     {
         // Arrange
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>(), It.IsAny<CancellationToken>()))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
         User? capturedUser = null;
@@ -157,7 +153,7 @@ public class AuthServiceTests
             IsLocked = false
         };
 
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>(), It.IsAny<CancellationToken>()))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         var loginRequest = new LoginRequestDto
@@ -194,7 +190,7 @@ public class AuthServiceTests
             IsLocked = false
         };
 
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>(), It.IsAny<CancellationToken>()))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         var loginRequest = new LoginRequestDto
@@ -231,7 +227,7 @@ public class AuthServiceTests
             LockoutEnd = DateTime.UtcNow.AddMinutes(5)
         };
 
-        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<LoginRequestDto>(), It.IsAny<CancellationToken>()))
+        _mockUserRepository.Setup(x => x.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         var loginRequest = new LoginRequestDto

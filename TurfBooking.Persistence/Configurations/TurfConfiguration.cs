@@ -16,7 +16,7 @@ public class TurfConfiguration : IEntityTypeConfiguration<Turf>
 
         builder.Property(t => t.Location)
             .IsRequired()
-            .HasMaxLength(200);
+            .HasMaxLength(1000);
 
         builder.Property(t => t.PricePerHour)
             .HasColumnType("decimal(18,2)");
@@ -27,10 +27,28 @@ public class TurfConfiguration : IEntityTypeConfiguration<Turf>
             .HasForeignKey(s => s.TurfId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // One Turf -> Many Reviews
+        builder.HasMany(t => t.Reviews)
+            .WithOne(r => r.Turf)
+            .HasForeignKey(r => r.TurfId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // One Turf -> One Owner
         builder.HasOne(t => t.Owner)
-            .WithMany()
+            .WithMany(o => o.Turfs)
             .HasForeignKey(t => t.OwnerId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // One Turf -> Many Documents
+        builder.HasMany(t => t.Documents)
+            .WithOne(d => d.Turf)
+            .HasForeignKey(d => d.TurfId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // One Turf -> Many Images
+        builder.HasMany(t => t.Images)
+            .WithOne(i => i.Turf)
+            .HasForeignKey(i => i.TurfId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

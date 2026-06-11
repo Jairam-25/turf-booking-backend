@@ -14,14 +14,12 @@ namespace Persistence.Repositories
         {
         }
 
-        public async Task<User?> GetByEmailAsync(LoginRequestDto req, CancellationToken cancellationToken = default)
+        public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(req.EmailOrPhone))
+            if (string.IsNullOrWhiteSpace(email))
                 return null;
 
-            var input = req.EmailOrPhone.Trim();
-
-            // Extract the last 10 digits as suffix for robust matching
+            var input = email.Trim();
             var suffix = input;
             if (input.Length >= 10)
             {

@@ -153,9 +153,9 @@ public class TurfServiceTests
 
         var turfs = new List<Turf>
         {
-            new Turf { Name = "Stadium A", Location = "Downtown", PricePerHour = 100 },
-            new Turf { Name = "Stadium B", Location = "Uptown", PricePerHour = 150 },
-            new Turf { Name = "Stadium C", Location = "Downtown", PricePerHour = 200 }
+            new Turf { Name = "Stadium A", Location = "Downtown", PricePerHour = 100, VerificationStatus = "Approved" },
+            new Turf { Name = "Stadium B", Location = "Uptown", PricePerHour = 150, VerificationStatus = "Approved" },
+            new Turf { Name = "Stadium C", Location = "Downtown", PricePerHour = 200, VerificationStatus = "Approved" }
         };
         await context.Turfs.AddRangeAsync(turfs);
         await context.SaveChangesAsync();

@@ -14,7 +14,7 @@ using Moq;
 using Persistence.Context;
 using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
-using Xunit;
+using Microsoft.Extensions.Options;
 
 namespace TurfBooking.Tests
 {
@@ -46,7 +46,7 @@ namespace TurfBooking.Tests
 
             builder.ConfigureAppConfiguration((context, config) =>
             {
-                config.AddInMemoryCollection(new Dictionary<string, string>
+                config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     { "ConnectionStrings:DefaultConnection", "Server=localhost;Database=TestDb;User Id=sa;Password=Password123;TrustServerCertificate=True" },
                     { "JwtSettings:Key", "super_secret_key_for_testing_purposes_only_32_characters" }
@@ -60,9 +60,9 @@ namespace TurfBooking.Tests
                     // Remove existing RateLimiterOptions configurations to avoid duplicate policy key errors
                     var rateLimiterConfigs = services.Where(
                         d => d.ServiceType.IsGenericType &&
-                        (d.ServiceType.GetGenericTypeDefinition() == typeof(Microsoft.Extensions.Options.IConfigureOptions<>) ||
-                         d.ServiceType.GetGenericTypeDefinition() == typeof(Microsoft.Extensions.Options.IPostConfigureOptions<>)) &&
-                        d.ServiceType.GetGenericArguments()[0] == typeof(Microsoft.AspNetCore.RateLimiting.RateLimiterOptions)).ToList();
+                        (d.ServiceType.GetGenericTypeDefinition() == typeof(IConfigureOptions<>) ||
+                         d.ServiceType.GetGenericTypeDefinition() == typeof(IPostConfigureOptions<>)) &&
+                        d.ServiceType.GetGenericArguments()[0] == typeof(RateLimiterOptions)).ToList();
                     
                     foreach (var config in rateLimiterConfigs)
                     {

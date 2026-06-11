@@ -37,7 +37,8 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         // Skip caching for Turf List to guarantee real-time price updates on the dashboard.
 
         // Query DB
-        var turfQuery = _unitOfWork.Turfs.AsQueryable();
+        var turfQuery = _unitOfWork.Turfs.AsQueryable()
+            .Where(t => t.VerificationStatus == "Approved");
 
         if (!string.IsNullOrWhiteSpace(query.Location))
         {
@@ -70,11 +71,13 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Include(t => t.Reviews)
+            .Include(t => t.Images)
             .ToListAsync(cancellationToken);
 
         var items = turfs.Select(t => {
             var dto = t.Adapt<TurfResponseDto>();
             dto.Rating = t.Reviews.Any() ? Math.Round(t.Reviews.Average(r => (double)r.Rating), 1) : 0.0;
+            dto.ImageUrl = t.Images.FirstOrDefault(i => !i.IsDeleted)?.ImageUrl;
             return dto;
         }).ToList();
 
@@ -166,6 +169,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
 
         var turf = await _unitOfWork.Turfs.AsQueryable()
             .Include(t => t.Reviews)
+            .Include(t => t.Images)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted, cancellationToken);
 
         if (turf == null)
@@ -176,6 +180,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
 
         var dto = turf.Adapt<TurfResponseDto>();
         dto.Rating = turf.Reviews.Any() ? Math.Round(turf.Reviews.Average(r => (double)r.Rating), 1) : 0.0;
+        dto.ImageUrl = turf.Images.FirstOrDefault(i => !i.IsDeleted)?.ImageUrl;
         
         try
         {

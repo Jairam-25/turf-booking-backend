@@ -25,6 +25,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Review> Reviews { get; set; }
     public DbSet<OwnerRequest> OwnerRequests { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<Owner> Owners { get; set; }
+    public DbSet<OwnerPayment> OwnerPayments { get; set; }
+    public DbSet<TurfDocument> TurfDocuments { get; set; }
+    public DbSet<TurfImage> TurfImages { get; set; }
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
@@ -35,6 +39,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new SlotConfiguration());
         modelBuilder.ApplyConfiguration(new BookingConfiguration());
         modelBuilder.ApplyConfiguration(new ReviewConfiguration());
+        modelBuilder.ApplyConfiguration(new OwnerConfiguration());
+        modelBuilder.ApplyConfiguration(new OwnerPaymentConfiguration());
 
         modelBuilder.Entity<User>()
             .HasQueryFilter(u => !u.IsDeleted);
@@ -56,6 +62,18 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<AuditLog>()
             .HasQueryFilter(a => !a.IsDeleted);
+
+        modelBuilder.Entity<Owner>()
+            .HasQueryFilter(o => !o.IsDeleted);
+
+        modelBuilder.Entity<OwnerPayment>()
+            .HasQueryFilter(op => !op.IsDeleted);
+
+        modelBuilder.Entity<TurfDocument>()
+            .HasQueryFilter(td => !td.IsDeleted);
+
+        modelBuilder.Entity<TurfImage>()
+            .HasQueryFilter(ti => !ti.IsDeleted);
 
         base.OnModelCreating(modelBuilder);
     }

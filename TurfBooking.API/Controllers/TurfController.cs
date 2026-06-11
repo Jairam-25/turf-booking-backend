@@ -1,9 +1,7 @@
 using Application.Common.Result;
 using Application.DTOs;
-using Application.Features.Turf.Queries;
-using Application.Features.Turf.Commands;
+using Application.Interfaces;
 using Application.Model;
-using MediatR;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -15,19 +13,18 @@ namespace TurfBooking.API.Controllers;
 [Route("api/v{version:apiVersion}/[controller]")]
 public class TurfController : ControllerBase
 {
-    private readonly IMediator _mediator;
+    private readonly ITurfService _turfService;
 
-    public TurfController(IMediator mediator)
+    public TurfController(ITurfService turfService)
     {
-        _mediator = mediator;
+        _turfService = turfService;
     }
 
     [HttpGet]
     public async Task<IActionResult> Get(
         [FromQuery] TurfQueryParameters query)
     {
-        var result = await _mediator.Send(
-            new GetAllTurfsQuery(query));
+        var result = await _turfService.GetAllTurfsAsync(query);
 
         return Ok(ApiResponse<PagedResult<TurfResponseDto>>.SuccessResponse(result, "Turfs retrieved successfully"));
     }
@@ -35,8 +32,7 @@ public class TurfController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var result = await _mediator.Send(
-            new GetTurfByIdQuery(id));
+        var result = await _turfService.GetTurfByIdAsync(id);
 
         if (result == null)
         {
@@ -49,7 +45,7 @@ public class TurfController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateTurfDto dto)
     {
-        var result = await _mediator.Send(new CreateTurfCommand(dto));
+        var result = await _turfService.CreateTurfAsync(dto);
 
         return Ok(ApiResponse<TurfResponseDto>.SuccessResponse(result, "Turf created successfully"));
     }
@@ -57,7 +53,7 @@ public class TurfController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await _mediator.Send(new DeleteTurfCommand(id));
+        var result = await _turfService.DeleteTurfAsync(id);
 
         if (!result)
             return NotFound(ApiResponse<object>.FailureResponse("Turf not found", null, 404));

@@ -1,8 +1,10 @@
 using Application.Common.Settings;
+using Application.Interfaces;
 using Application.Validators;
 using Asp.Versioning;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Google.Apis.Auth.OAuth2;
 using Hangfire;
 using HealthChecks.UI.Client;
 using Infrastructure;
@@ -13,16 +15,15 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Trace;
 using Persistence;
 using Serilog;
 using System.Text;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.ResponseCompression;
-using OpenTelemetry.Trace;
 using TurfBooking.API.Middlewares;
-using Google.Apis.Auth.OAuth2;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -96,8 +97,8 @@ builder.Services.AddSwaggerGen(options =>
 // Register Redis Distributed Cache
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    // Connection string for local Redis
-    options.Configuration = "localhost:6379";
+    // Connection string for Redis from configuration
+    options.Configuration = builder.Configuration.GetSection("Redis:ConnectionString").Value ?? "localhost:6379";
 
     // Prefix for all cache keys (avoids key conflicts)
     options.InstanceName = "TurfBooking_";
@@ -121,7 +122,7 @@ builder.Services.AddHealthChecks()
         builder.Configuration.GetConnectionString("DefaultConnection")!,
         name: "sqlserver")
     .AddRedis(
-        "localhost:6379",
+        builder.Configuration.GetSection("Redis:ConnectionString").Value ?? "localhost:6379",
         name: "redis");
 
 // Define rate limiting policies
@@ -193,11 +194,11 @@ if (File.Exists("firebase-adminsdk.json"))
     {
         FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions()
         {
-            Credential = GoogleCredential.FromStream(stream)
+            Credential = CredentialFactory.FromStream<ServiceAccountCredential>(stream).ToGoogleCredential()
         });
     }
 }
-builder.Services.AddScoped<Application.Interfaces.IFcmNotificationService, Infrastructure.Services.FcmNotificationService>();
+builder.Services.AddScoped<IFcmNotificationService, FcmNotificationService>();
 
 // Dependency Injection
 builder.Services.AddPersistence(
@@ -231,7 +232,7 @@ builder.Services.AddCors(options =>
         "AllowAngular",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200")
+            policy.WithOrigins("http://localhost:4200", "http://localhost:4201")
                               .AllowAnyHeader()
                               .AllowAnyMethod()
                               .AllowCredentials();
@@ -279,13 +280,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// Add API Versioning
-builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
-    options.ReportApiVersions = true;
-});
+// Add API Versioning was already called above.
 
 // Build App
 var app = builder.Build();
@@ -310,6 +305,16 @@ app.UseHttpsRedirection();
 
 // CORS
 app.UseCors("AllowAngular");
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+    }
+});
 
 app.UseRateLimiter();
 

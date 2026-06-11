@@ -26,7 +26,7 @@ namespace Infrastructure.Services
         private readonly IUserRepository _userRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IDistributedCache _cache;
-        private readonly JwtSettings _jwtSettings;
+        private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
         private readonly ISmsService _smsService;
         private readonly ILogger<OtpService> _logger;
@@ -40,7 +40,7 @@ namespace Infrastructure.Services
             IUserRepository userRepository,
             IUnitOfWork unitOfWork,
             IDistributedCache cache,
-            IOptions<JwtSettings> jwtSettings,
+            ITokenService tokenService,
             IEmailService emailService,
             ISmsService smsService,
             ILogger<OtpService> logger,
@@ -49,7 +49,7 @@ namespace Infrastructure.Services
             _userRepository = userRepository;
             _unitOfWork = unitOfWork;
             _cache = cache;
-            _jwtSettings = jwtSettings.Value;
+            _tokenService = tokenService;
             _emailService = emailService;
             _smsService = smsService;
             _logger = logger;
@@ -76,7 +76,7 @@ namespace Infrastructure.Services
                 }
 
                 // Check if user exists by email
-                var user = await _userRepository.GetByEmailAsync(new LoginRequestDto { EmailOrPhone = identifier }, cancellationToken);
+                var user = await _userRepository.GetByEmailAsync(identifier, cancellationToken);
                 if (user == null)
                 {
                     return Result<string>.Failure("No user found on this mail. Please register after use this mail to login");
@@ -161,7 +161,7 @@ namespace Infrastructure.Services
             if (isEmail)
             {
                 cacheKey = identifier;
-                user = await _userRepository.GetByEmailAsync(new LoginRequestDto { EmailOrPhone = identifier }, cancellationToken);
+                user = await _userRepository.GetByEmailAsync(identifier, cancellationToken);
             }
             else
             {
@@ -206,9 +206,9 @@ namespace Infrastructure.Services
             user.LockoutEnd = null;
 
             // 4. Generate Auth Tokens (JWT & Refresh Token)
-            var token = GenerateJwtToken(user);
-            var rawRefreshToken = GenerateRefreshToken();
-            user.RefreshToken = HashToken(rawRefreshToken);
+            var token = _tokenService.GenerateJwtToken(user);
+            var rawRefreshToken = _tokenService.GenerateRefreshToken();
+            user.RefreshToken = _tokenService.HashToken(rawRefreshToken);
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(AppConstants.RefreshTokenExpiryDays);
 
             await _unitOfWork.SaveChangesAsync();
@@ -342,43 +342,6 @@ namespace Infrastructure.Services
                 _logger.LogWarning(ex, "Redis remove error. Clearing local memory store.");
             }
             _localOtpStore.TryRemove(key, out _);
-        }
-
-        private string GenerateJwtToken(User user)
-        {
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name,           user.Name),
-                new Claim(ClaimTypes.Email,          user.Email),
-                new Claim(ClaimTypes.Role,           user.Role)
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _jwtSettings.Issuer,
-                audience: _jwtSettings.Audience,
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(AppConstants.ExpiryMinutes),
-                signingCredentials: creds);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        private static string GenerateRefreshToken()
-        {
-            var randomNumber = new byte[AppConstants.ByteNumber];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(randomNumber);
-            return Convert.ToBase64String(randomNumber);
-        }
-
-        private static string HashToken(string token)
-        {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-            return Convert.ToHexString(bytes);
         }
 
         #endregion
