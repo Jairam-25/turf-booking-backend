@@ -2,6 +2,7 @@ using Application.Common.Result;
 using Application.DTOs;
 using Application.Interfaces;
 using Application.Model;
+using Persistence.Interfaces;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -24,7 +25,7 @@ public class TurfController : ControllerBase
     public async Task<IActionResult> Get(
         [FromQuery] TurfQueryParameters query)
     {
-        var result = await _turfService.GetAllTurfsAsync(query);
+        var result = await _turfService.GetAllTurfAsync(query);
 
         return Ok(ApiResponse<PagedResult<TurfResponseDto>>.SuccessResponse(result, "Turfs retrieved successfully"));
     }
