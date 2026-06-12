@@ -94,15 +94,22 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Register Redis Distributed Cache
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    // Connection string for Redis from configuration
-    options.Configuration = builder.Configuration.GetSection("Redis:ConnectionString").Value ?? "localhost:6379";
+// Register Redis Distributed Cache or Fallback to Memory Cache
+var redisConnectionString = builder.Configuration.GetSection("Redis:ConnectionString").Value;
+bool useRedis = !string.IsNullOrEmpty(redisConnectionString) && redisConnectionString != "localhost:6379";
 
-    // Prefix for all cache keys (avoids key conflicts)
-    options.InstanceName = "TurfBooking_";
-});
+if (useRedis)
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnectionString;
+        options.InstanceName = "TurfBooking_";
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache();
+}
 
 // Register Hangfire with SQL Server storage
 builder.Services.AddHangfire(config =>
@@ -117,13 +124,17 @@ builder.Services.AddHangfire(config =>
 builder.Services.AddHangfireServer();
 
 // Register Health Checks
-builder.Services.AddHealthChecks()
+var healthChecksBuilder = builder.Services.AddHealthChecks()
     .AddSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")!,
-        name: "sqlserver")
-    .AddRedis(
-        builder.Configuration.GetSection("Redis:ConnectionString").Value ?? "localhost:6379",
+        name: "sqlserver");
+
+if (useRedis)
+{
+    healthChecksBuilder.AddRedis(
+        redisConnectionString!,
         name: "redis");
+}
 
 // Define rate limiting policies
 builder.Services.AddRateLimiter(options =>
