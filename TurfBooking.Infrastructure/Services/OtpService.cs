@@ -152,9 +152,6 @@ namespace Infrastructure.Services
                 return Result<LoginResponseDto>.Failure("Email/Phone and OTP code are required.");
             }
 
-            // MAGIC OTP FOR TESTING (Since Render Free Tier blocks SMTP Port 587)
-            bool isMagicOtp = request.OtpCode == "123456";
-
             var identifier = request.EmailOrPhone.Trim().ToLowerInvariant();
             var code = request.OtpCode.Trim();
             bool isEmail = identifier.Contains('@');
@@ -179,23 +176,23 @@ namespace Infrastructure.Services
             }
 
             // 1. Retrieve OTP and verify
-            // Validate against Redis cache unless magic OTP is used
-            if (!isMagicOtp)
+            var storedOtp = await RetrieveOtpCodeAsync(cacheKey, cancellationToken);
+            bool isDevMasterCode = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development" && code == "123456";
+            if (!isDevMasterCode)
             {
-                var storedOtp = await RetrieveOtpCodeAsync(cacheKey, cancellationToken);
                 if (string.IsNullOrEmpty(storedOtp))
                 {
-                    return Result<LoginResponseDto>.Failure("OTP has expired or does not exist. Please request a new one.");
+                    return Result<LoginResponseDto>.Failure("OTP has expired or is invalid.");
                 }
 
                 if (storedOtp != code)
                 {
                     return Result<LoginResponseDto>.Failure("Invalid OTP code.");
                 }
-
-                // Clean up used OTP
-                await RemoveOtpCodeAsync(cacheKey, cancellationToken);
             }
+
+            // 2. Remove OTP immediately upon successful verification (one-time use)
+            await RemoveOtpCodeAsync(cacheKey, cancellationToken);
 
             // 3. Fetch User
             if (user == null)
