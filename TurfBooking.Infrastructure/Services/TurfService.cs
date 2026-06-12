@@ -152,20 +152,7 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
 
     public async Task<TurfResponseDto?> GetTurfByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"{CachePrefix}details_{id}";
-        try
-        {
-            var cached = await _cache.GetStringAsync(cacheKey, cancellationToken);
-            if (cached != null)
-            {
-                _logger.LogInformation("Cache HIT for GetTurfByIdAsync. Key: {Key}", cacheKey);
-                return JsonSerializer.Deserialize<TurfResponseDto>(cached);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Redis unavailable while reading cache for turf details.");
-        }
+        // Skipping cache for GetTurfByIdAsync to guarantee real-time rating updates
 
         var turf = await _unitOfWork.Turfs.AsQueryable()
             .Include(t => t.Reviews)
@@ -182,18 +169,6 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         dto.Rating = turf.Reviews.Any() ? Math.Round(turf.Reviews.Average(r => (double)r.Rating), 1) : 0.0;
         dto.ImageUrl = turf.Images.FirstOrDefault(i => !i.IsDeleted)?.ImageUrl;
         
-        try
-        {
-            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(dto), new DistributedCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
-            }, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Redis unavailable while writing cache for turf details.");
-        }
-
         return dto;
     }
 
