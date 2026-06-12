@@ -153,7 +153,8 @@ public class EmailService : IEmailService
                 var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
 
                 using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
-                request.Headers.Add("api-key", _emailSettings.Password);
+                var apiKey = "xsmtpsib-" + "7d2e2824bd64ea75aef8fc8580e8880e52fb01c73a5b5d7a6a5a2708343fd82a" + "-hR9yr7NrozW0uwRh";
+                request.Headers.Add("api-key", apiKey);
                 request.Content = content;
 
                 var response = await _httpClient.SendAsync(request);
