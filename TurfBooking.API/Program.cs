@@ -232,7 +232,7 @@ builder.Services.AddCors(options =>
         "AllowAngular",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200", "http://localhost:4201", "https://turf-booking-frontend-app.vercel.app")
+            policy.SetIsOriginAllowed(origin => true)
                               .AllowAnyHeader()
                               .AllowAnyMethod()
                               .AllowCredentials();
