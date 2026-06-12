@@ -129,27 +129,42 @@ public class EmailService : IEmailService
         await SendEmailWithResilienceAsync(email);
     }
 
-    // CORE — Send email wrapped in Retry + Circuit Breaker
+    private static readonly HttpClient _httpClient = new HttpClient();
+
+    // CORE — Send email wrapped in Retry + Circuit Breaker using Brevo API
     private async Task SendEmailWithResilienceAsync(MimeMessage email)
     {
-        // Wrap retry INSIDE circuit breaker
-        // Circuit breaker checks first — if open, throws immediately
-        // If closed/half-open, retry policy handles transient failures
         await _circuitBreaker.ExecuteAsync(async () =>
         {
             await _retryPolicy.ExecuteAsync(async () =>
             {
-                using var smtp = new SmtpClient();
-                await smtp.ConnectAsync("smtp.gmail.com", 587, false);
-                await smtp.AuthenticateAsync(
-                    _emailSettings.Email,
-                    _emailSettings.Password);
-                await smtp.SendAsync(email);
-                await smtp.DisconnectAsync(true);
+                var targetEmail = email.To.Mailboxes.FirstOrDefault()?.Address;
+                var subject = email.Subject;
+                var htmlContent = email.Body is TextPart textPart ? textPart.Text : "Empty Content";
 
-                _logger.LogInformation(
-                    "Email sent successfully to {To}",
-                    email.To);
+                var payload = new
+                {
+                    sender = new { name = "TurfXpert", email = "turfbookingxpert@gmail.com" },
+                    to = new[] { new { email = targetEmail } },
+                    subject = subject,
+                    htmlContent = htmlContent
+                };
+
+                var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
+                request.Headers.Add("api-key", _emailSettings.Password);
+                request.Content = content;
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorDetails = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"Brevo API failed with status {response.StatusCode}: {errorDetails}");
+                }
+
+                _logger.LogInformation("Email sent successfully via Brevo API to {To}", targetEmail);
             });
         });
     }
