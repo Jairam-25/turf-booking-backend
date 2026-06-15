@@ -7,6 +7,7 @@ using Infrastructure.Hubs;
 using Microsoft.Extensions.DependencyInjection;
 using Domain.Events;
 using Microsoft.Extensions.Caching.Distributed;
+using RedLockNet;
 
 namespace Infrastructure.Services
 {
@@ -18,8 +19,9 @@ namespace Infrastructure.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IDistributedCache _cache;
         private readonly IPaymentService _paymentService;
+        private readonly IDistributedLockFactory _lockFactory;
 
-        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext, IEmailService emailService, IServiceScopeFactory scopeFactory, IPaymentService paymentService, IDistributedCache cache)
+        public BookingService(IUnitOfWork unitOfWork, IHubContext<SlotHub> hubContext, IEmailService emailService, IServiceScopeFactory scopeFactory, IPaymentService paymentService, IDistributedCache cache, RedLockNet.IDistributedLockFactory lockFactory)
         {
             _unitOfWork = unitOfWork;
             _hubContext = hubContext;
@@ -27,6 +29,7 @@ namespace Infrastructure.Services
             _scopeFactory = scopeFactory;
             _paymentService = paymentService;
             _cache = cache;
+            _lockFactory = lockFactory;
         }
 
         public async Task<Result<object>> BookSlotAsync(CreateBookingDto dto, int userId, CancellationToken ct = default)
@@ -39,6 +42,17 @@ namespace Infrastructure.Services
                 {
                     return Result<object>.Failure("Invalid payment signature");
                 }
+            }
+
+            var resource = $"lock:slot:{dto.SlotId}";
+            var expiry = TimeSpan.FromSeconds(10);
+            var wait = TimeSpan.FromSeconds(2);
+            var retry = TimeSpan.FromSeconds(1);
+
+            using var redLock = await _lockFactory.CreateLockAsync(resource, expiry, wait, retry, ct);
+            if (!redLock.IsAcquired)
+            {
+                return Result<object>.Failure("Slot is currently being processed by another user.");
             }
 
             // Find slot with related turf

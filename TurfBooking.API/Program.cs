@@ -11,6 +11,7 @@ using HealthChecks.UI.Client;
 using Infrastructure;
 using Infrastructure.Hubs;
 using Infrastructure.Services;
+using Application.Behaviors;
 using Mapster;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -21,7 +22,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenTelemetry.Trace;
 using Persistence;
+using RedLockNet.SERedis;
+using RedLockNet.SERedis.Configuration;
 using Serilog;
+using StackExchange.Redis;
 using System.IO.Compression;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -58,7 +62,9 @@ builder.Services.AddOpenTelemetry()
         .AddSource("TurfBooking.API")
         .AddAspNetCoreInstrumentation()
         .AddEntityFrameworkCoreInstrumentation()
+        .AddHttpClientInstrumentation()
         .AddRedisInstrumentation()
+        .AddOtlpExporter()
         .AddConsoleExporter());
 
 
@@ -108,6 +114,12 @@ if (useRedis)
         options.Configuration = redisConnectionString;
         options.InstanceName = "TurfBooking_";
     });
+
+    builder.Services.AddSingleton<RedLockNet.IDistributedLockFactory>(sp =>
+    {
+        var multiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
+        return RedLockFactory.Create(new List<RedLockMultiplexer> { multiplexer });
+    });
 }
 else
 {
@@ -138,6 +150,8 @@ if (useRedis)
         redisConnectionString!,
         name: "redis");
 }
+
+builder.Services.AddHealthChecksUI().AddInMemoryStorage();
 
 // Define rate limiting policies
 builder.Services.AddRateLimiter(options =>
@@ -227,6 +241,9 @@ builder.Services.AddMediatR(
     typeof(AssemblyReference).Assembly,
     typeof(AuthService).Assembly);
 
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceLoggingBehavior<,>));
+
 builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -235,7 +252,14 @@ builder.Services.AddApiVersioning(options =>
 });
 
 // SignalR
-builder.Services.AddSignalR();
+if (useRedis)
+{
+    builder.Services.AddSignalR().AddStackExchangeRedis(redisConnectionString);
+}
+else
+{
+    builder.Services.AddSignalR();
+}
 
 //Configure Jwt Settings
 builder.Services.Configure<JwtSettings>(
@@ -348,6 +372,8 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 });
+
+app.MapHealthChecksUI(config => config.UIPath = "/health-ui");
 
 // Map Controllers
 app.MapControllers();

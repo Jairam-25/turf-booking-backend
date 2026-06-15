@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Moq;
 using Persistence.Context;
+using RedLockNet;
 using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
@@ -153,6 +154,14 @@ namespace TurfBooking.Tests
                 {
                     services.Remove(service);
                 }
+
+                // 6. Mock DistributedLockFactory
+                var mockLockFactory = new Mock<IDistributedLockFactory>();
+                var mockLock = new Mock<IRedLock>();
+                mockLock.Setup(x => x.IsAcquired).Returns(true);
+                mockLockFactory.Setup(x => x.CreateLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<TimeSpan>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(mockLock.Object);
+                services.AddSingleton<IDistributedLockFactory>(mockLockFactory.Object);
             });
         }
     }
