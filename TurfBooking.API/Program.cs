@@ -223,7 +223,9 @@ builder.Services.AddInfrastructure();
 builder.Services.AddMapster();
 TypeAdapterConfig.GlobalSettings.Scan(typeof(AuthService).Assembly);
 
-builder.Services.AddMediatR(typeof(AssemblyReference).Assembly);
+builder.Services.AddMediatR(
+    typeof(AssemblyReference).Assembly,
+    typeof(AuthService).Assembly);
 
 builder.Services.AddApiVersioning(options =>
 {
@@ -350,6 +352,13 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 // Map Controllers
 app.MapControllers();
 
+// Fallback for missing uploads (prevent 404 errors in browser console)
+app.MapGet("/uploads/{fileName}", (string fileName) =>
+{
+    // Return a default image or redirect
+    return Results.Redirect("https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2070&auto=format&fit=crop");
+});
+
 // Map SignalR hubs
 app.MapHub<SlotHub>("/hubs/slots");
 
@@ -357,7 +366,10 @@ app.MapHub<SlotHub>("/hubs/slots");
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<Persistence.Context.ApplicationDbContext>();
-    dbContext.Database.Migrate();
+    if (dbContext.Database.IsRelational())
+    {
+        dbContext.Database.Migrate();
+    }
 }
 
 // Run Application

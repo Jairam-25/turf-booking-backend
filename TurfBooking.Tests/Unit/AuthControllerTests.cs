@@ -109,7 +109,7 @@ public class AuthControllerTests
     public async Task RefreshToken_WithSuccessfulServiceCall_ReturnsOk()
     {
         // Arrange
-        var token = "refresh_token";
+        var token = new RefreshTokenDto { RefreshToken = "refresh_token" };
         var loginResponse = new LoginResponseDto { Token = "new_access_token", RefreshToken = "new_refresh_token" };
         var serviceResult = Result<LoginResponseDto>.Success(loginResponse);
         _mockAuthService

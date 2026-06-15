@@ -78,9 +78,9 @@ namespace TurfBooking.API.Controllers
 
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken(
-            [FromBody] string refreshToken)
+            [FromBody] RefreshTokenDto request)
         {
-            var result = await _authService.RefreshTokenAsync(refreshToken);
+            var result = await _authService.RefreshTokenAsync(request.RefreshToken);
 
             if (!result.IsSuccess)
             {
@@ -229,4 +229,10 @@ namespace TurfBooking.API.Controllers
             return Ok(ApiResponse<string>.SuccessResponse(string.Empty, "Account deleted successfully"));
         }
     }
+}
+
+public class RefreshTokenDto
+{
+    public string Token { get; set; } = string.Empty;
+    public string RefreshToken { get; set; } = string.Empty;
 }
