@@ -78,7 +78,7 @@ public class OwnerController : ControllerBase
         }).OrderByDescending(b => b.Date).ToArray();
 
         var turfImages = await unitOfWork.TurfImages.GetAllAsync();
-        var myImageUrl = turfImages.FirstOrDefault(i => i.TurfId == myTurf.Id)?.ImageUrl;
+        var myImageUrl = turfImages.OrderByDescending(i => i.UploadedAt).FirstOrDefault(i => i.TurfId == myTurf.Id && !i.IsDeleted)?.ImageUrl;
 
         var dashboardData = new
         {

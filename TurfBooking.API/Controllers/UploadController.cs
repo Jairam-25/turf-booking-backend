@@ -33,22 +33,24 @@ public class UploadController : ControllerBase
         if (!allowedExtensions.Contains(extension))
             return BadRequest(new { message = "Invalid file format. Allowed: JPG, PNG, PDF" });
 
-        var webRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        var uploadsFolder = Path.Combine(webRoot, "uploads");
-        if (!Directory.Exists(uploadsFolder))
-            Directory.CreateDirectory(uploadsFolder);
-
-        var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        using (var memoryStream = new MemoryStream())
         {
-            await file.CopyToAsync(stream);
+            await file.CopyToAsync(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+            var base64String = Convert.ToBase64String(fileBytes);
+            
+            // Determine MIME type
+            var mimeType = file.ContentType;
+            if (string.IsNullOrEmpty(mimeType))
+            {
+                mimeType = "image/jpeg";
+                if (extension == ".png") mimeType = "image/png";
+                if (extension == ".gif") mimeType = "image/gif";
+                if (extension == ".webp") mimeType = "image/webp";
+            }
+            
+            var base64Url = $"data:{mimeType};base64,{base64String}";
+            return Ok(new { url = base64Url });
         }
-
-        // Return a relative URL. In production, we'd prepend the request base path or use CDN, 
-        // but for local testing returning `/uploads/{filename}` is perfect.
-        var fileUrl = $"/uploads/{uniqueFileName}";
-        return Ok(new { url = fileUrl });
     }
 }
