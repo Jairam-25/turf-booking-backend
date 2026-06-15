@@ -117,13 +117,21 @@ if (useRedis)
 
     builder.Services.AddSingleton<RedLockNet.IDistributedLockFactory>(sp =>
     {
-        var multiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
-        return RedLockFactory.Create(new List<RedLockMultiplexer> { multiplexer });
+        try
+        {
+            var multiplexer = ConnectionMultiplexer.Connect(redisConnectionString!);
+            return RedLockFactory.Create(new List<RedLockMultiplexer> { multiplexer });
+        }
+        catch
+        {
+            return new TurfBooking.Infrastructure.Services.DummyLockFactory();
+        }
     });
 }
 else
 {
     builder.Services.AddDistributedMemoryCache();
+    builder.Services.AddSingleton<RedLockNet.IDistributedLockFactory, TurfBooking.Infrastructure.Services.DummyLockFactory>();
 }
 
 // Register Hangfire with SQL Server storage
