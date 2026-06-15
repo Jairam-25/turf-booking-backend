@@ -1,5 +1,6 @@
 using Application.Common.Settings;
 using Application.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Application.Validators;
 using Asp.Versioning;
 using FluentValidation;
@@ -351,6 +352,13 @@ app.MapControllers();
 
 // Map SignalR hubs
 app.MapHub<SlotHub>("/hubs/slots");
+
+// Apply Pending Database Migrations automatically on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<Persistence.Context.ApplicationDbContext>();
+    dbContext.Database.Migrate();
+}
 
 // Run Application
 app.Run();
