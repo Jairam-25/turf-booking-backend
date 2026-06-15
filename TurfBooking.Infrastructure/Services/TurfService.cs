@@ -77,7 +77,8 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
         var items = turfs.Select(t => {
             var dto = t.Adapt<TurfResponseDto>();
             dto.Rating = t.Reviews.Any() ? Math.Round(t.Reviews.Average(r => (double)r.Rating), 1) : 0.0;
-            dto.ImageUrl = t.Images.FirstOrDefault(i => !i.IsDeleted)?.ImageUrl;
+            var imageUrl = t.Images.FirstOrDefault(i => !i.IsDeleted)?.ImageUrl;
+            dto.ImageUrl = GetValidImageUrl(imageUrl);
             return dto;
         }).ToList();
 
@@ -167,7 +168,8 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
 
         var dto = turf.Adapt<TurfResponseDto>();
         dto.Rating = turf.Reviews.Any() ? Math.Round(turf.Reviews.Average(r => (double)r.Rating), 1) : 0.0;
-        dto.ImageUrl = turf.Images.FirstOrDefault(i => !i.IsDeleted)?.ImageUrl;
+        var imageUrl = turf.Images.FirstOrDefault(i => !i.IsDeleted)?.ImageUrl;
+        dto.ImageUrl = GetValidImageUrl(imageUrl);
         
         return dto;
     }
@@ -176,6 +178,24 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
     {
         await _cache.RemoveAsync(
             $"{CachePrefix}p1_ps10_localall_min0_max0_sortid_asc", cancellationToken);
+    }
+
+    private string? GetValidImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrEmpty(imageUrl)) return null;
+        if (!imageUrl.Contains("uploads")) return imageUrl;
+        
+        try
+        {
+            // Normalize path separators to ensure cross-platform compatibility
+            var normalizedPath = imageUrl.TrimStart('/').TrimStart('\\').Replace("/", Path.DirectorySeparatorChar.ToString());
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", normalizedPath);
+            return System.IO.File.Exists(filePath) ? imageUrl : null;
+        }
+        catch
+        {
+            return null; // Return null if path evaluation fails
+        }
     }
 
     public async Task<bool> DeleteTurfAsync(int id, CancellationToken cancellationToken = default)
