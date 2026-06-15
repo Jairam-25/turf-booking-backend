@@ -1,15 +1,10 @@
 using Application.Common.Result;
 using Application.DTOs;
-using Application.Interfaces;
 using Application.Model;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using Persistence.Interfaces;
 using TurfBooking.API.Controllers;
-using Xunit;
 
 namespace TurfBooking.Tests;
 
@@ -37,7 +32,7 @@ public class TurfControllerTests
             PageSize = 10
         };
         _mockTurfService
-            .Setup(m => m.GetAllTurfsAsync(query))
+            .Setup(m => m.GetAllTurfAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResult);
 
         // Act
@@ -57,7 +52,7 @@ public class TurfControllerTests
         // Arrange
         var dto = new CreateTurfDto { Name = "New Turf", Location = "Uptown", PricePerHour = 150 };
         var responseDto = new TurfResponseDto { Id = 1, Name = "New Turf", Location = "Uptown", PricePerHour = 150 };
-        _mockTurfService.Setup(x => x.CreateTurfAsync(dto)).ReturnsAsync(responseDto);
+        _mockTurfService.Setup(x => x.CreateTurfAsync(dto, It.IsAny<CancellationToken>())).ReturnsAsync(responseDto);
 
         // Act
         var response = await _controller.Create(dto);
@@ -73,7 +68,7 @@ public class TurfControllerTests
     public async Task Delete_WhenTurfExists_ReturnsOk()
     {
         // Arrange
-        _mockTurfService.Setup(x => x.DeleteTurfAsync(1)).ReturnsAsync(true);
+        _mockTurfService.Setup(x => x.DeleteTurfAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         // Act
         var response = await _controller.Delete(1);
@@ -89,7 +84,7 @@ public class TurfControllerTests
     public async Task Delete_WhenTurfDoesNotExist_ReturnsNotFound()
     {
         // Arrange
-        _mockTurfService.Setup(x => x.DeleteTurfAsync(999)).ReturnsAsync(false);
+        _mockTurfService.Setup(x => x.DeleteTurfAsync(999, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         // Act
         var response = await _controller.Delete(999);
