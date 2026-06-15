@@ -15,7 +15,7 @@ public interface IGenericRepository<T>
 
     Task UpdateAsync(T entity, CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(T entity, CancellationToken cancellationToken = default);
+    Task DeleteAsync(int id, CancellationToken cancellationToken = default);
 
     IQueryable<T> AsQueryable();
 }

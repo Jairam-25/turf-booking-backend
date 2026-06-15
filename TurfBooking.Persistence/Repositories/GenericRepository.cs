@@ -38,10 +38,13 @@ public class GenericRepository<T>
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        _dbSet.Remove(entity);
-        return Task.CompletedTask;
+        var entity = await GetByIdAsync(id, cancellationToken);
+        if (entity is not null)
+        {
+            _dbSet.Remove(entity);
+        }
     }
 
     public IQueryable<T> AsQueryable()
