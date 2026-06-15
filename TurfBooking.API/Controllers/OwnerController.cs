@@ -349,7 +349,7 @@ public class OwnerController : ControllerBase
         if (booking.Slot != null)
             booking.Slot.IsBooked = false;
 
-        await unitOfWork.Bookings.DeleteAsync(booking);
+        await unitOfWork.Bookings.DeleteAsync(booking.Id);
         await unitOfWork.SaveChangesAsync();
 
         if (booking.Slot != null)

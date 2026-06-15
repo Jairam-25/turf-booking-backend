@@ -143,7 +143,7 @@ namespace Infrastructure.Services
             if (booking.Slot != null)
                 booking.Slot.IsBooked = false;
 
-            await _unitOfWork.Bookings.DeleteAsync(booking, ct);
+            await _unitOfWork.Bookings.DeleteAsync(booking.Id, ct);
             await _unitOfWork.SaveChangesAsync(ct);
 
             if (booking.Slot != null)

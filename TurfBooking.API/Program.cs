@@ -220,9 +220,7 @@ builder.Services.AddInfrastructure();
 builder.Services.AddMapster();
 TypeAdapterConfig.GlobalSettings.Scan(typeof(AuthService).Assembly);
 
-builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssembly(
-        typeof(TurfBooking.Application.AssemblyReference).Assembly));
+builder.Services.AddMediatR(typeof(TurfBooking.Application.AssemblyReference).Assembly);
 
 builder.Services.AddApiVersioning(options =>
 {

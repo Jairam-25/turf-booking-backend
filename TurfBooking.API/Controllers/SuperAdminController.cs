@@ -238,7 +238,7 @@ public class SuperAdminController : ControllerBase
     }
 
     [HttpPost("remove-owner")]
-    public async Task<IActionResult> RemoveOwner([FromBody] RemoveOwnerDto dto, [FromServices] IUnitOfWork unitOfWork, [FromServices] Application.Interfaces.IUserRepository userRepository)
+    public async Task<IActionResult> RemoveOwner([FromBody] RemoveOwnerDto dto, [FromServices] IUnitOfWork unitOfWork, [FromServices] IUserRepository userRepository)
     {
         var superAdminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (superAdminIdClaim == null) return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));

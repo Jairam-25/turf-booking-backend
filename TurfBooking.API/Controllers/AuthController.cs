@@ -224,7 +224,7 @@ namespace TurfBooking.API.Controllers
             var user = await userRepository.GetByIdAsync(int.Parse(userId));
             if (user == null) return NotFound();
 
-            await userRepository.DeleteAsync(user);
+            await userRepository.DeleteAsync(user.Id);
             await unitOfWork.SaveChangesAsync();
             return Ok(ApiResponse<string>.SuccessResponse(string.Empty, "Account deleted successfully"));
         }
