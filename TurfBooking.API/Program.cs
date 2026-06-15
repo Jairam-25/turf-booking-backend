@@ -21,9 +21,11 @@ using Microsoft.OpenApi.Models;
 using OpenTelemetry.Trace;
 using Persistence;
 using Serilog;
+using System.IO.Compression;
 using System.Text;
 using System.Threading.RateLimiting;
 using TurfBooking.API.Middlewares;
+using TurfBooking.Application;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -46,7 +48,7 @@ builder.Services.AddResponseCompression(options =>
 
 builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
 {
-    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+    options.Level = CompressionLevel.Fastest;
 });
 
 // Register OpenTelemetry
@@ -220,7 +222,7 @@ builder.Services.AddInfrastructure();
 builder.Services.AddMapster();
 TypeAdapterConfig.GlobalSettings.Scan(typeof(AuthService).Assembly);
 
-builder.Services.AddMediatR(typeof(TurfBooking.Application.AssemblyReference).Assembly);
+builder.Services.AddMediatR(typeof(AssemblyReference).Assembly);
 
 builder.Services.AddApiVersioning(options =>
 {
