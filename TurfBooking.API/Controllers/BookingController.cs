@@ -59,11 +59,18 @@ public class BookingController : ControllerBase
             return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
 
         var userId = int.Parse(userIdClaim);
-        var result = await _bookingService.GetMyBookingsAsync(userId, ct);
-        if (!result.IsSuccess)
-            return StatusCode(400, ApiResponse<object>.FailureResponse(result.Error, null, 400));
-            
-        return Ok(ApiResponse<object>.SuccessResponse(result.Value, "Bookings retrieved successfully"));
+        try
+        {
+            var result = await _bookingService.GetMyBookingsAsync(userId, ct);
+            if (!result.IsSuccess)
+                return StatusCode(400, ApiResponse<object>.FailureResponse(result.Error, null, 400));
+                
+            return Ok(ApiResponse<object>.SuccessResponse(result.Value, "Bookings retrieved successfully"));
+        }
+        catch (System.Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = "Internal Server Error", error = ex.Message, stackTrace = ex.StackTrace, innerException = ex.InnerException?.Message });
+        }
     }
 
     // ── DELETE /api/booking/{id} ───────────────────────────
