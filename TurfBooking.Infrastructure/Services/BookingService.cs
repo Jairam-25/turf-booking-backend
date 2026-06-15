@@ -131,11 +131,11 @@ namespace Infrastructure.Services
                 {
                     bookingId = b.Id,
                     bookedOn = b.BookingDate,
-                    turfName = b.Slot!.Turf!.Name,
-                    location = b.Slot.Turf.Location,
-                    price = b.Slot.Turf.PricePerHour,
-                    startTime = b.Slot.StartTime,
-                    endTime = b.Slot.EndTime
+                    turfName = b.Slot != null && b.Slot.Turf != null ? b.Slot.Turf.Name : "Unknown Turf",
+                    location = b.Slot != null && b.Slot.Turf != null ? b.Slot.Turf.Location : "Unknown Location",
+                    price = b.Slot != null && b.Slot.Turf != null ? b.Slot.Turf.PricePerHour : 0,
+                    startTime = b.Slot != null ? b.Slot.StartTime : default(DateTime),
+                    endTime = b.Slot != null ? b.Slot.EndTime : default(DateTime)
                 })
                 .ToListAsync(ct);
 
