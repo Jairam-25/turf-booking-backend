@@ -36,7 +36,6 @@ public class CommunityController : ControllerBase
                 Avatar = string.IsNullOrEmpty(u.ProfilePictureUrl) ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(u.Name)}&background=random" : u.ProfilePictureUrl,
                 Points = bookings.Count(b => b.UserId == u.Id),
             })
-            .Where(u => u.Points > 0)
             .OrderByDescending(x => x.Points)
             .Take(20)
             .ToList();
