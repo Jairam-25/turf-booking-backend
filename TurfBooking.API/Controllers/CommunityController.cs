@@ -35,7 +35,7 @@ public class CommunityController : ControllerBase
             .Select(u => 
             {
                 var userBookings = bookings.Where(b => b.UserId == u.Id).ToList();
-                var latestBooking = userBookings.OrderByDescending(b => b.CreatedAt).FirstOrDefault();
+                var latestBooking = userBookings.OrderByDescending(b => b.BookingDate).FirstOrDefault();
                 
                 return new
                 {
@@ -43,7 +43,7 @@ public class CommunityController : ControllerBase
                     Name = u.Name,
                     Avatar = string.IsNullOrEmpty(u.ProfilePictureUrl) ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(u.Name)}&background=random" : u.ProfilePictureUrl,
                     Points = userBookings.Count,
-                    TurfName = latestBooking?.Slot?.Turf?.TurfName ?? "Various Turfs"
+                    TurfName = latestBooking?.Slot?.Turf?.Name ?? "Various Turfs"
                 };
             })
             .Where(u => u.Points > 0)
