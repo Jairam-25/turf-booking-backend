@@ -79,7 +79,7 @@ namespace Infrastructure.Services
                 var user = await _userRepository.GetByEmailAsync(identifier, cancellationToken);
                 if (user == null)
                 {
-                    return Result<string>.Failure("No user found on this mail. Please register after use this mail to login");
+                    return Result<string>.Failure("No user found with this email. Please register to create an account.");
                 }
 
                 targetEmail = user.Email;
