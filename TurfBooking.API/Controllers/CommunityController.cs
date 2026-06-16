@@ -25,19 +25,29 @@ public class CommunityController : ControllerBase
     public async Task<IActionResult> GetLeaderboard()
     {
         var users = await _unitOfWork.Users.GetAllAsync();
-        var bookings = await _unitOfWork.Bookings.GetAllAsync();
+        var bookings = await _unitOfWork.Bookings.AsQueryable()
+            .Include(b => b.Slot)
+            .ThenInclude(s => s.Turf)
+            .ToListAsync();
 
         var leaderboard = users
             .Where(u => u.Role != "SuperAdmin")
-            .Select(u => new
+            .Select(u => 
             {
-                Id = u.Id.ToString(),
-                Name = u.Name,
-                Avatar = string.IsNullOrEmpty(u.ProfilePictureUrl) ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(u.Name)}&background=random" : u.ProfilePictureUrl,
-                Points = bookings.Count(b => b.UserId == u.Id),
+                var userBookings = bookings.Where(b => b.UserId == u.Id).ToList();
+                var latestBooking = userBookings.OrderByDescending(b => b.CreatedAt).FirstOrDefault();
+                
+                return new
+                {
+                    Id = u.Id.ToString(),
+                    Name = u.Name,
+                    Avatar = string.IsNullOrEmpty(u.ProfilePictureUrl) ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(u.Name)}&background=random" : u.ProfilePictureUrl,
+                    Points = userBookings.Count,
+                    TurfName = latestBooking?.Slot?.Turf?.TurfName ?? "Various Turfs"
+                };
             })
+            .Where(u => u.Points > 0)
             .OrderByDescending(x => x.Points)
-            .Take(20)
             .ToList();
 
         // Assign ranks and trends
@@ -47,6 +57,7 @@ public class CommunityController : ControllerBase
             x.Name,
             x.Avatar,
             x.Points,
+            x.TurfName,
             Rank = index + 1,
             Trend = index % 3 == 0 ? "up" : index % 3 == 1 ? "same" : "down" // Mock trend for now
         }).ToList();
