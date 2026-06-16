@@ -27,6 +27,15 @@ namespace TurfBooking.API.Controllers
 
             if (!result.IsSuccess)
             {
+                if (result.Error != null && result.Error.Contains("No user found"))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "User not found",
+                        isRegistered = false
+                    });
+                }
                 return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Failed to send OTP", null, 400));
             }
 
