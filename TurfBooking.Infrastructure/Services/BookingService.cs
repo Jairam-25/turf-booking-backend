@@ -70,7 +70,7 @@ namespace Infrastructure.Services
 
             if (!string.IsNullOrEmpty(dto.PromoCode))
             {
-                appliedPromo = await _unitOfWork.PromoOffers.Query()
+                appliedPromo = await _unitOfWork.PromoOffers.AsQueryable()
                     .FirstOrDefaultAsync(p => p.PromoCode.ToUpper() == dto.PromoCode.ToUpper(), ct);
 
                 if (appliedPromo == null)
@@ -82,7 +82,7 @@ namespace Infrastructure.Services
                 if (appliedPromo.ExpiryDate.HasValue && appliedPromo.ExpiryDate.Value < DateTime.UtcNow)
                     return Result<object>.Failure("Promo code has expired.");
 
-                var hasUsed = await _unitOfWork.PromoUsages.Query()
+                var hasUsed = await _unitOfWork.PromoUsages.AsQueryable()
                     .AnyAsync(u => u.UserId == userId && u.PromoOfferId == appliedPromo.Id, ct);
 
                 if (hasUsed)

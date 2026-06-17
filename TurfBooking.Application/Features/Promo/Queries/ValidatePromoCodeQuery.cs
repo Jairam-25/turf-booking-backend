@@ -39,7 +39,7 @@ namespace Application.Features.Promo.Queries
                 return new ValidatePromoCodeResult { IsValid = false, Message = "Promo code is required." };
             }
 
-            var promo = await _unitOfWork.PromoOffers.Query()
+            var promo = await _unitOfWork.PromoOffers.AsQueryable()
                 .FirstOrDefaultAsync(p => p.PromoCode.ToUpper() == code, cancellationToken);
 
             if (promo == null)
@@ -57,7 +57,7 @@ namespace Application.Features.Promo.Queries
                 return new ValidatePromoCodeResult { IsValid = false, Message = "Promo code has expired." };
             }
 
-            var hasUsed = await _unitOfWork.PromoUsages.Query()
+            var hasUsed = await _unitOfWork.PromoUsages.AsQueryable()
                 .AnyAsync(u => u.UserId == request.UserId && u.PromoOfferId == promo.Id, cancellationToken);
 
             if (hasUsed)

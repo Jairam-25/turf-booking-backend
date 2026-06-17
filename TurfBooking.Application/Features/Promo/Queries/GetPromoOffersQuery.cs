@@ -25,11 +25,11 @@ namespace Application.Features.Promo.Queries
 
         public async Task<List<PromoOfferDto>> Handle(GetPromoOffersQuery request, CancellationToken cancellationToken)
         {
-            var offers = await _unitOfWork.PromoOffers.Query()
+            var offers = await _unitOfWork.PromoOffers.AsQueryable()
                 .Where(p => p.IsActive)
                 .ToListAsync(cancellationToken);
 
-            var usages = await _unitOfWork.PromoUsages.Query()
+            var usages = await _unitOfWork.PromoUsages.AsQueryable()
                 .Where(u => u.UserId == request.UserId)
                 .Select(u => u.PromoOfferId)
                 .ToListAsync(cancellationToken);
