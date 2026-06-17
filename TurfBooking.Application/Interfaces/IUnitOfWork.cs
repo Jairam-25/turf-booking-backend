@@ -26,5 +26,9 @@ public interface IUnitOfWork
 
     IGenericRepository<TurfImage> TurfImages { get; }
 
+    IGenericRepository<PromoOffer> PromoOffers { get; }
+
+    IGenericRepository<PromoUsage> PromoUsages { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

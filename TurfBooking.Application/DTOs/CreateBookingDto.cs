@@ -6,5 +6,6 @@ namespace Application.DTOs
         public string? RazorpayOrderId { get; set; }
         public string? RazorpayPaymentId { get; set; }
         public string? RazorpaySignature { get; set; }
+        public string? PromoCode { get; set; }
     }
 }

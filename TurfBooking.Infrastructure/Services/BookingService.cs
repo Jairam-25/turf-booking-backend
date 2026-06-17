@@ -66,6 +66,29 @@ namespace Infrastructure.Services
             if (slot.IsBooked)
                 return Result<object>.Failure("Slot is already booked");
 
+            PromoOffer? appliedPromo = null;
+
+            if (!string.IsNullOrEmpty(dto.PromoCode))
+            {
+                appliedPromo = await _unitOfWork.PromoOffers.Query()
+                    .FirstOrDefaultAsync(p => p.PromoCode.ToUpper() == dto.PromoCode.ToUpper(), ct);
+
+                if (appliedPromo == null)
+                    return Result<object>.Failure("Invalid promo code.");
+
+                if (!appliedPromo.IsActive)
+                    return Result<object>.Failure("Promo code is no longer active.");
+
+                if (appliedPromo.ExpiryDate.HasValue && appliedPromo.ExpiryDate.Value < DateTime.UtcNow)
+                    return Result<object>.Failure("Promo code has expired.");
+
+                var hasUsed = await _unitOfWork.PromoUsages.Query()
+                    .AnyAsync(u => u.UserId == userId && u.PromoOfferId == appliedPromo.Id, ct);
+
+                if (hasUsed)
+                    return Result<object>.Failure("You have already used this promo code.");
+            }
+
             var booking = new Booking
             {
                 UserId = userId,
@@ -83,7 +106,20 @@ namespace Infrastructure.Services
 
             slot.IsBooked = true;
             await _unitOfWork.Bookings.AddAsync(booking, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _unitOfWork.SaveChangesAsync(ct); // Save to get the booking.Id
+
+            if (appliedPromo != null)
+            {
+                var usage = new PromoUsage
+                {
+                    UserId = userId,
+                    PromoOfferId = appliedPromo.Id,
+                    BookingId = booking.Id,
+                    UsedDate = DateTime.UtcNow
+                };
+                await _unitOfWork.PromoUsages.AddAsync(usage, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+            }
 
             try
             {

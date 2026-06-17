@@ -29,7 +29,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<OwnerPayment> OwnerPayments { get; set; }
     public DbSet<TurfDocument> TurfDocuments { get; set; }
     public DbSet<TurfImage> TurfImages { get; set; }
-
+    public DbSet<PromoOffer> PromoOffers { get; set; }
+    public DbSet<PromoUsage> PromoUsages { get; set; }
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
@@ -41,6 +42,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ReviewConfiguration());
         modelBuilder.ApplyConfiguration(new OwnerConfiguration());
         modelBuilder.ApplyConfiguration(new OwnerPaymentConfiguration());
+        modelBuilder.ApplyConfiguration(new PromoOfferConfiguration());
+        modelBuilder.ApplyConfiguration(new PromoUsageConfiguration());
 
         modelBuilder.Entity<User>()
             .HasQueryFilter(u => !u.IsDeleted);
@@ -74,6 +77,12 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<TurfImage>()
             .HasQueryFilter(ti => !ti.IsDeleted);
+
+        modelBuilder.Entity<PromoOffer>()
+            .HasQueryFilter(p => !p.IsDeleted);
+
+        modelBuilder.Entity<PromoUsage>()
+            .HasQueryFilter(pu => !pu.IsDeleted);
 
         base.OnModelCreating(modelBuilder);
     }

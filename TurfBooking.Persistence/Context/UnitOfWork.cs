@@ -25,6 +25,8 @@ namespace Persistence.Context
         public IGenericRepository<OwnerPayment> OwnerPayments { get; }
         public IGenericRepository<TurfDocument> TurfDocuments { get; }
         public IGenericRepository<TurfImage> TurfImages { get; }
+        public IGenericRepository<PromoOffer> PromoOffers { get; }
+        public IGenericRepository<PromoUsage> PromoUsages { get; }
 
         public UnitOfWork
         (
@@ -48,6 +50,8 @@ namespace Persistence.Context
             OwnerPayments = new GenericRepository<OwnerPayment>(_context);
             TurfDocuments = new GenericRepository<TurfDocument>(_context);
             TurfImages = new GenericRepository<TurfImage>(_context);
+            PromoOffers = new GenericRepository<PromoOffer>(_context);
+            PromoUsages = new GenericRepository<PromoUsage>(_context);
         }
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
