@@ -22,7 +22,7 @@ namespace TurfBooking.API.Controllers
 
         // GET /api/slot?turfId=11
         // Shows all available (not booked) slots for a turf
-        [AllowAnonymous]
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetAvailableSlots(
             int turfId, CancellationToken ct = default)
