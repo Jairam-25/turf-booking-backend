@@ -108,10 +108,25 @@ namespace TurfBooking.API.Controllers
 
             if (!result.IsSuccess)
             {
+                if (result.Error == "Google user not registered")
+                {
+                    return Ok(new
+                    {
+                        success = false,
+                        userExists = false,
+                        message = "User not found"
+                    });
+                }
                 return Unauthorized(ApiResponse<object>.FailureResponse(result.Error ?? "Google login failed", null, 401));
             }
 
-            return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(result.Value, "Google login successful"));
+            return Ok(new
+            {
+                success = true,
+                userExists = true,
+                data = result.Value,
+                message = "Google login successful"
+            });
         }
 
         [HttpPost("logout")]

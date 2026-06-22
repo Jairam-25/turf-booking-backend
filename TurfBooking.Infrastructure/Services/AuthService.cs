@@ -239,17 +239,7 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
 
             if (user == null)
             {
-                // Auto-register new Google user
-                user = new User
-                {
-                    Email = payload.Email,
-                    Name = payload.Name ?? payload.Email,
-                    Role = "User",
-                    // Dummy password since they use Google
-                    Password = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString())
-                };
-                await _userRepository.AddAsync(user);
-                await _unitOfWork.SaveChangesAsync();
+                return Result<LoginResponseDto>.Failure("Google user not registered");
             }
 
             user.FailedLoginAttempts = 0;
