@@ -31,6 +31,9 @@ public class User : BaseEntity
     public string? PlayerType { get; set; } // e.g., "Football", "Cricket", "Tennis"
     public string? PlayingLevel { get; set; } // e.g., "State Level", "District Level", "National Level", "Amateur"
     
+    public DateTime? LastActive { get; set; }
+    public string Status { get; set; } = "Active"; // Active, Inactive, Blocked
+    
     public ICollection<Booking> Bookings { get; set; }
     = new List<Booking>();
 }

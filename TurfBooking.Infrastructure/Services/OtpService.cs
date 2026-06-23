@@ -200,10 +200,16 @@ namespace Infrastructure.Services
                 return Result<LoginResponseDto>.Failure("User not found.");
             }
 
+            if (user.Status == "Blocked" || (user.IsLocked && user.LockoutEnd > DateTime.UtcNow && user.LockoutEnd?.Year > 2050))
+            {
+                return Result<LoginResponseDto>.Failure("Your account has been temporarily restricted. Please contact support.");
+            }
+
             // Clear potential login lockout flags
             user.FailedLoginAttempts = 0;
             user.IsLocked = false;
             user.LockoutEnd = null;
+            user.LastActive = DateTime.UtcNow;
 
             // 4. Generate Auth Tokens (JWT & Refresh Token)
             var token = _tokenService.GenerateJwtToken(user);

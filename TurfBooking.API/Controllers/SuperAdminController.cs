@@ -346,6 +346,87 @@ public class SuperAdminController : ControllerBase
 
         return Ok(ApiResponse<bool>.SuccessResponse(true, "Owner details updated successfully."));
     }
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers([FromServices] IUnitOfWork unitOfWork)
+    {
+        var users = await unitOfWork.Users.GetAllAsync();
+        var bookings = await unitOfWork.Bookings.GetAllAsync();
+        var turfs = await unitOfWork.Turfs.GetAllAsync();
+
+        var slots = await unitOfWork.Slots.GetAllAsync();
+
+        var usersList = users.Select(u => {
+            var userBookings = bookings.Where(b => b.UserId == u.Id).ToList();
+            var totalBookings = userBookings.Count;
+            var latestBooking = userBookings.OrderByDescending(b => b.BookingDate).FirstOrDefault()?.BookingDate;
+            
+            // Map bookings to TurfIds via slots
+            var userTurfIds = userBookings
+                .Select(b => slots.FirstOrDefault(s => s.Id == b.SlotId)?.TurfId)
+                .Where(tid => tid.HasValue)
+                .Select(tid => tid!.Value)
+                .ToList();
+
+            var favoriteTurfId = userTurfIds.GroupBy(tid => tid).OrderByDescending(g => g.Count()).FirstOrDefault()?.Key;
+            var favoriteTurf = favoriteTurfId != null ? turfs.FirstOrDefault(t => t.Id == favoriteTurfId)?.Name : null;
+
+            return new {
+                id = u.Id,
+                name = u.Name,
+                email = u.Email,
+                phoneNumber = u.PhoneNumber,
+                registrationDate = u.CreatedAt,
+                status = string.IsNullOrEmpty(u.Status) ? "Active" : u.Status,
+                isBlocked = u.Status == "Blocked" || (u.IsLocked && u.LockoutEnd > DateTime.UtcNow && u.LockoutEnd?.Year > 2050),
+                lastActive = u.LastActive,
+                totalBookings = totalBookings,
+                latestBookingDate = latestBooking,
+                favoriteTurf = favoriteTurf
+            };
+        }).ToList();
+
+        return Ok(ApiResponse<object>.SuccessResponse(usersList, "Users retrieved successfully"));
+    }
+
+    [HttpPost("users/{userId}/status")]
+    public async Task<IActionResult> UpdateUserStatus(int userId, [FromBody] UpdateUserStatusDto dto, [FromServices] IUnitOfWork unitOfWork)
+    {
+        var superAdminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (superAdminIdClaim == null) return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
+        var superAdminId = int.Parse(superAdminIdClaim);
+
+        var users = await unitOfWork.Users.GetAllAsync();
+        var user = users.FirstOrDefault(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return NotFound(ApiResponse<object>.FailureResponse("User not found"));
+        }
+
+        user.Status = dto.Status;
+        if (dto.Status == "Blocked")
+        {
+            user.IsLocked = true;
+            user.LockoutEnd = DateTime.UtcNow.AddYears(100);
+        }
+        else if (dto.Status == "Active")
+        {
+            user.IsLocked = false;
+            user.LockoutEnd = null;
+        }
+
+        // Create Audit Log
+        var auditLog = new AuditLog
+        {
+            UserId = superAdminId,
+            Action = "UpdateUserStatus",
+            Details = $"SuperAdmin {superAdminId} updated status of User {user.Id} to {dto.Status}."
+        };
+        await unitOfWork.AuditLogs.AddAsync(auditLog);
+
+        await unitOfWork.SaveChangesAsync();
+        return Ok(ApiResponse<bool>.SuccessResponse(true, $"User status updated to {dto.Status}"));
+    }
 }
 
 public class ApproveOwnerRequestDto
@@ -373,4 +454,9 @@ public class EditOwnerDto
     public string MobileNumber { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+}
+
+public class UpdateUserStatusDto
+{
+    public string Status { get; set; } = string.Empty;
 }

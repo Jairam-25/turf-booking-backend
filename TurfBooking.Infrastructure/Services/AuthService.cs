@@ -70,7 +70,11 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
                 AuthMessages.InvalidCredentials);
         }
 
-        if (user.IsLocked && user.LockoutEnd > DateTime.UtcNow)
+        if (user.Status == "Blocked" || (user.IsLocked && user.LockoutEnd > DateTime.UtcNow && user.LockoutEnd?.Year > 2050))
+        {
+            return Result<LoginResponseDto>.Failure("Your account has been temporarily restricted. Please contact support.");
+        }
+        else if (user.IsLocked && user.LockoutEnd > DateTime.UtcNow)
         {
             return Result<LoginResponseDto>.Failure(AuthMessages.LoginMaxAttempt);
         }
@@ -98,6 +102,8 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
 
         user.FailedLoginAttempts = 0;
         user.IsLocked = false;
+        user.LockoutEnd = null;
+        user.LastActive = DateTime.UtcNow;
 
         var token = _tokenService.GenerateJwtToken(user);
 
@@ -208,6 +214,13 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
                 AuthMessages.TokenExpired);
         }
 
+        if (user.Status == "Blocked" || (user.IsLocked && user.LockoutEnd > DateTime.UtcNow && user.LockoutEnd?.Year > 2050))
+        {
+            return Result<LoginResponseDto>.Failure("Your account has been temporarily restricted. Please contact support.");
+        }
+
+        user.LastActive = DateTime.UtcNow;
+
         var newJwtToken = _tokenService.GenerateJwtToken(user);
 
         // New raw token for client
@@ -241,6 +254,13 @@ public class AuthService(IUserRepository userRepository, IUnitOfWork unitOfWork,
             {
                 return Result<LoginResponseDto>.Failure("Google user not registered");
             }
+
+            if (user.Status == "Blocked" || (user.IsLocked && user.LockoutEnd > DateTime.UtcNow && user.LockoutEnd?.Year > 2050))
+            {
+                return Result<LoginResponseDto>.Failure("Your account has been temporarily restricted. Please contact support.");
+            }
+
+            user.LastActive = DateTime.UtcNow;
 
             user.FailedLoginAttempts = 0;
             user.IsLocked = false;
