@@ -476,33 +476,7 @@ public class SuperAdminController : ControllerBase
 
         return Ok(ApiResponse<object>.SuccessResponse(bookingDetails, "User bookings retrieved"));
     }
-}
 
-public class ApproveOwnerRequestDto
-{
-    public int RequestId { get; set; }
-}
-
-public class VerifyOwnerDto
-{
-    public int OwnerId { get; set; }
-    public int? TurfId { get; set; }
-    public string Status { get; set; } = string.Empty; // Approved, Rejected, Under Review, Pending Verification
-    public string? RejectionReason { get; set; }
-}
-
-public class RemoveOwnerDto
-{
-    public int OwnerId { get; set; }
-}
-
-public class EditOwnerDto
-{
-    public int OwnerId { get; set; }
-    public string FullName { get; set; } = string.Empty;
-    public string MobileNumber { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Address { get; set; } = string.Empty;
     [HttpGet("turfs")]
     public async Task<IActionResult> GetAllTurfs([FromServices] IUnitOfWork unitOfWork)
     {
@@ -541,6 +515,9 @@ public class EditOwnerDto
         var turfSlots = slots.Where(s => s.TurfId == turfId).ToList();
         var turfSlotIds = turfSlots.Select(s => s.Id).ToList();
 
+        var turfs = await unitOfWork.Turfs.GetAllAsync();
+        var currentTurf = turfs.FirstOrDefault(t => t.Id == turfId);
+
         var bookings = await unitOfWork.Bookings.GetAllAsync();
         var turfBookings = bookings.Where(b => turfSlotIds.Contains(b.SlotId)).ToList();
 
@@ -557,13 +534,40 @@ public class EditOwnerDto
                 userEmail = user?.Email ?? "Unknown Email",
                 startTime = slot?.StartTime,
                 endTime = slot?.EndTime,
-                price = slot?.Price ?? 0m,
-                status = b.Status // Status may not exist on Booking.cs, let's use IsBooked or something.
+                price = currentTurf?.PricePerHour ?? 0m,
+                status = "Confirmed"
             };
         }).OrderByDescending(b => b.bookingDate).ToList();
 
         return Ok(ApiResponse<object>.SuccessResponse(bookingDetails, "Turf bookings retrieved"));
     }
+}
+
+public class ApproveOwnerRequestDto
+{
+    public int RequestId { get; set; }
+}
+
+public class VerifyOwnerDto
+{
+    public int OwnerId { get; set; }
+    public int? TurfId { get; set; }
+    public string Status { get; set; } = string.Empty; // Approved, Rejected, Under Review, Pending Verification
+    public string? RejectionReason { get; set; }
+}
+
+public class RemoveOwnerDto
+{
+    public int OwnerId { get; set; }
+}
+
+public class EditOwnerDto
+{
+    public int OwnerId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string MobileNumber { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
 }
 
 public class UpdateUserStatusDto
