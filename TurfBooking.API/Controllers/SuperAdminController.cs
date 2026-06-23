@@ -512,34 +512,43 @@ public class SuperAdminController : ControllerBase
     public async Task<IActionResult> GetTurfBookings(int turfId, [FromServices] IUnitOfWork unitOfWork)
     {
         var slots = await unitOfWork.Slots.GetAllAsync();
-        var turfSlots = slots.Where(s => s.TurfId == turfId).ToList();
-        var turfSlotIds = turfSlots.Select(s => s.Id).ToList();
+        var turfSlots = slots.Where(s => s.TurfId == turfId).Select(s => new {
+            id = s.Id,
+            startTime = s.StartTime,
+            endTime = s.EndTime
+        }).OrderBy(s => s.startTime).ToList();
 
         var turfs = await unitOfWork.Turfs.GetAllAsync();
         var currentTurf = turfs.FirstOrDefault(t => t.Id == turfId);
 
         var bookings = await unitOfWork.Bookings.GetAllAsync();
+        var turfSlotIds = turfSlots.Select(s => s.id).ToList();
         var turfBookings = bookings.Where(b => turfSlotIds.Contains(b.SlotId)).ToList();
 
         var users = await unitOfWork.Users.GetAllAsync();
 
         var bookingDetails = turfBookings.Select(b => {
-            var slot = turfSlots.FirstOrDefault(s => s.Id == b.SlotId);
+            var slot = turfSlots.FirstOrDefault(s => s.id == b.SlotId);
             var user = users.FirstOrDefault(u => u.Id == b.UserId);
             
             return new {
                 id = b.Id,
+                slotId = b.SlotId,
                 bookingDate = b.BookingDate,
                 userName = user?.Name ?? "Unknown User",
                 userEmail = user?.Email ?? "Unknown Email",
-                startTime = slot?.StartTime,
-                endTime = slot?.EndTime,
+                userPhone = user?.PhoneNumber ?? "No Phone",
+                startTime = slot?.startTime,
+                endTime = slot?.endTime,
                 price = currentTurf?.PricePerHour ?? 0m,
                 status = "Confirmed"
             };
-        }).OrderByDescending(b => b.bookingDate).ToList();
+        }).ToList();
 
-        return Ok(ApiResponse<object>.SuccessResponse(bookingDetails, "Turf bookings retrieved"));
+        return Ok(ApiResponse<object>.SuccessResponse(new {
+            slots = turfSlots,
+            bookings = bookingDetails
+        }, "Turf bookings retrieved"));
     }
 }
 
