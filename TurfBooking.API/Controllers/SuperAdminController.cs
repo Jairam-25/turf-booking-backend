@@ -389,7 +389,7 @@ public class SuperAdminController : ControllerBase
     }
 
     [HttpPost("users/{userId}/status")]
-    public async Task<IActionResult> UpdateUserStatus(int userId, [FromBody] UpdateUserStatusDto dto, [FromServices] IUnitOfWork unitOfWork)
+    public async Task<IActionResult> UpdateUserStatus(int userId, [FromBody] UpdateUserStatusDto dto, [FromServices] IUnitOfWork unitOfWork, [FromServices] IEmailService emailService)
     {
         var superAdminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (superAdminIdClaim == null) return Unauthorized(ApiResponse<object>.FailureResponse("Invalid token", null, 401));
@@ -420,12 +420,61 @@ public class SuperAdminController : ControllerBase
         {
             UserId = superAdminId,
             Action = "UpdateUserStatus",
-            Details = $"SuperAdmin {superAdminId} updated status of User {user.Id} to {dto.Status}."
+            Details = $"SuperAdmin {superAdminId} updated status of User {user.Id} to {dto.Status}. Reason: {dto.Reason}"
         };
         await unitOfWork.AuditLogs.AddAsync(auditLog);
 
         await unitOfWork.SaveChangesAsync();
+
+        // Send email notification for Blocked or Inactive
+        if ((dto.Status == "Blocked" || dto.Status == "Inactive") && !string.IsNullOrEmpty(dto.Reason) && !string.IsNullOrEmpty(user.Email))
+        {
+            try
+            {
+                await emailService.SendAccountStatusUpdateEmailAsync(user.Email, user.Name, dto.Status, dto.Reason);
+            }
+            catch { }
+        }
+
+        // Send Push Notification if FCM token is available
+        if (!string.IsNullOrEmpty(user.FcmToken) && !string.IsNullOrEmpty(dto.Reason))
+        {
+            var title = dto.Status == "Blocked" ? "⚠️ Account Restricted" : "Account Status Update";
+            var body = $"Your account status is now {dto.Status}. Reason: {dto.Reason}";
+            try
+            {
+                await _fcmService.SendPushNotificationAsync(user.FcmToken, title, body);
+            }
+            catch { }
+        }
+
         return Ok(ApiResponse<bool>.SuccessResponse(true, $"User status updated to {dto.Status}"));
+    }
+
+    [HttpGet("users/{userId}/bookings")]
+    public async Task<IActionResult> GetUserBookings(int userId, [FromServices] IUnitOfWork unitOfWork)
+    {
+        var bookings = await unitOfWork.Bookings.GetAllAsync();
+        var userBookings = bookings.Where(b => b.UserId == userId).ToList();
+
+        var turfs = await unitOfWork.Turfs.GetAllAsync();
+        var slots = await unitOfWork.Slots.GetAllAsync();
+
+        var bookingDetails = userBookings.Select(b => {
+            var slot = slots.FirstOrDefault(s => s.Id == b.SlotId);
+            var turf = slot != null ? turfs.FirstOrDefault(t => t.Id == slot.TurfId) : null;
+            return new {
+                id = b.Id,
+                bookingDate = b.BookingDate,
+                turfName = turf?.Name ?? "Unknown Turf",
+                location = turf?.Location ?? "Unknown Location",
+                price = turf?.PricePerHour ?? 0m,
+                startTime = slot?.StartTime,
+                endTime = slot?.EndTime
+            };
+        }).OrderByDescending(b => b.bookingDate).ToList();
+
+        return Ok(ApiResponse<object>.SuccessResponse(bookingDetails, "User bookings retrieved"));
     }
 }
 
@@ -459,4 +508,5 @@ public class EditOwnerDto
 public class UpdateUserStatusDto
 {
     public string Status { get; set; } = string.Empty;
+    public string? Reason { get; set; }
 }

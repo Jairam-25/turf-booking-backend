@@ -27,5 +27,11 @@ namespace Application.Interfaces
             string turfName,
             DateTime bookingDate,
             string reason);
+
+        Task SendAccountStatusUpdateEmailAsync(
+            string toEmail,
+            string userName,
+            string status,
+            string reason);
     }
 }

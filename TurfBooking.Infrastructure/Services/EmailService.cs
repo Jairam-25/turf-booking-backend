@@ -129,6 +129,42 @@ public class EmailService : IEmailService
         await SendEmailWithResilienceAsync(email);
     }
 
+    public async Task SendAccountStatusUpdateEmailAsync(string toEmail, string userName, string status, string reason)
+    {
+        var email = new MimeMessage();
+        email.From.Add(MailboxAddress.Parse(_emailSettings.Email));
+        email.To.Add(MailboxAddress.Parse(toEmail));
+        email.Subject = status == "Blocked" ? "Account Temporarily Restricted" : "Account Status Update";
+
+        var htmlTemplate = $@"
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ padding: 20px; border: 1px solid #ddd; border-radius: 5px; max-width: 600px; margin: 0 auto; }}
+                .header {{ font-size: 20px; font-weight: bold; margin-bottom: 20px; color: {(status == "Blocked" ? "#e74c3c" : "#f39c12")}; }}
+                .footer {{ margin-top: 30px; font-size: 12px; color: #777; text-align: center; }}
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>TurfXpert Account Update</div>
+                <p>Hello {userName},</p>
+                <p>Your TurfXpert account status has been updated to <strong>{status}</strong>.</p>
+                <p><strong>Reason provided by administrator:</strong></p>
+                <blockquote style='border-left: 4px solid #ddd; padding-left: 10px; color: #555;'>{reason}</blockquote>
+                <p>If you believe this is a mistake, please contact our support team.</p>
+                <div class='footer'>&copy; {DateTime.UtcNow.Year} TurfXpert. All rights reserved.</div>
+            </div>
+        </body>
+        </html>";
+
+        email.Body = new TextPart("html") { Text = htmlTemplate };
+
+        await SendEmailWithResilienceAsync(email);
+    }
+
     private static readonly HttpClient _httpClient = new HttpClient();
 
     // CORE — Send email wrapped in Retry + Circuit Breaker using Brevo API
