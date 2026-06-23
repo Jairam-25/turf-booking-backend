@@ -503,6 +503,67 @@ public class EditOwnerDto
     public string MobileNumber { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+    [HttpGet("turfs")]
+    public async Task<IActionResult> GetAllTurfs([FromServices] IUnitOfWork unitOfWork)
+    {
+        var turfs = await unitOfWork.Turfs.GetAllAsync();
+        var bookings = await unitOfWork.Bookings.GetAllAsync();
+        var slots = await unitOfWork.Slots.GetAllAsync();
+        var owners = await unitOfWork.Owners.GetAllAsync();
+        var users = await unitOfWork.Users.GetAllAsync();
+
+        var turfDetails = turfs.Select(t => {
+            var owner = owners.FirstOrDefault(o => o.Id == t.OwnerId);
+            var ownerUser = owner != null ? users.FirstOrDefault(u => u.Id == owner.UserId) : null;
+            var turfSlots = slots.Where(s => s.TurfId == t.Id).Select(s => s.Id).ToList();
+            var turfBookings = bookings.Count(b => turfSlots.Contains(b.SlotId));
+
+            return new {
+                id = t.Id,
+                name = t.Name,
+                location = t.Location,
+                price = t.PricePerHour,
+                status = t.VerificationStatus,
+                ownerName = ownerUser?.Name ?? "Unknown",
+                ownerEmail = ownerUser?.Email ?? "Unknown",
+                totalBookings = turfBookings,
+                createdAt = t.CreatedAt
+            };
+        }).OrderByDescending(t => t.totalBookings).ToList();
+
+        return Ok(ApiResponse<object>.SuccessResponse(turfDetails, "Turfs retrieved"));
+    }
+
+    [HttpGet("turfs/{turfId}/bookings")]
+    public async Task<IActionResult> GetTurfBookings(int turfId, [FromServices] IUnitOfWork unitOfWork)
+    {
+        var slots = await unitOfWork.Slots.GetAllAsync();
+        var turfSlots = slots.Where(s => s.TurfId == turfId).ToList();
+        var turfSlotIds = turfSlots.Select(s => s.Id).ToList();
+
+        var bookings = await unitOfWork.Bookings.GetAllAsync();
+        var turfBookings = bookings.Where(b => turfSlotIds.Contains(b.SlotId)).ToList();
+
+        var users = await unitOfWork.Users.GetAllAsync();
+
+        var bookingDetails = turfBookings.Select(b => {
+            var slot = turfSlots.FirstOrDefault(s => s.Id == b.SlotId);
+            var user = users.FirstOrDefault(u => u.Id == b.UserId);
+            
+            return new {
+                id = b.Id,
+                bookingDate = b.BookingDate,
+                userName = user?.Name ?? "Unknown User",
+                userEmail = user?.Email ?? "Unknown Email",
+                startTime = slot?.StartTime,
+                endTime = slot?.EndTime,
+                price = slot?.Price ?? 0m,
+                status = b.Status // Status may not exist on Booking.cs, let's use IsBooked or something.
+            };
+        }).OrderByDescending(b => b.bookingDate).ToList();
+
+        return Ok(ApiResponse<object>.SuccessResponse(bookingDetails, "Turf bookings retrieved"));
+    }
 }
 
 public class UpdateUserStatusDto
