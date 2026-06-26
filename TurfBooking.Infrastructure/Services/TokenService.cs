@@ -17,13 +17,20 @@ public class TokenService(IOptions<JwtSettings> jwtSettings) : ITokenService
 
     public string GenerateJwtToken(User user)
     {
-        var claims = new[]
+        var claimsList = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name,           user.Name),
             new Claim(ClaimTypes.Email,          user.Email),
             new Claim(ClaimTypes.Role,           user.Role)
         };
+
+        if (!string.IsNullOrEmpty(user.City))
+        {
+            claimsList.Add(new Claim(ClaimTypes.Locality, user.City));
+        }
+
+        var claims = claimsList.ToArray();
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

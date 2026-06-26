@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,6 +25,9 @@ namespace Application.Model
 
         // Filter by location (optional)
         public string? Location { get; set; }
+        
+        // Priority preferred city for sorting
+        public string? PreferredCity { get; set; }
 
         // Filter by max price per hour (optional)
         public decimal? MaxPrice { get; set; }

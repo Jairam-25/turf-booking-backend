@@ -26,6 +26,7 @@ public class User : BaseEntity
 
     // Additional User Details
     public string? Address { get; set; }
+    public string? City { get; set; }
     public string? State { get; set; }
     public string? MaritalStatus { get; set; } // "Married", "Unmarried", etc.
     public string? PlayerType { get; set; } // e.g., "Football", "Cricket", "Tennis"

@@ -52,18 +52,43 @@ public class TurfService(IUnitOfWork unitOfWork, IDistributedCache cache, ILogge
             turfQuery = SpecificationEvaluator<Turf>.GetQuery(turfQuery, priceRangeSpec);
         }
 
-        turfQuery = query.SortBy?.ToLower() switch
+        // Preferred city priority sorting
+        if (!string.IsNullOrWhiteSpace(query.PreferredCity))
         {
-            "price" => query.SortOrder == "desc"
-                ? turfQuery.OrderByDescending(t => t.PricePerHour)
-                : turfQuery.OrderBy(t => t.PricePerHour),
+            var pCity = query.PreferredCity.ToLower();
+            // This pulls turfs matching the city to the top (0), others go below (1)
+            turfQuery = turfQuery.OrderBy(t => t.City.ToLower() == pCity ? 0 : 1);
+            
+            // Apply secondary sorting based on the requested SortBy parameter
+            turfQuery = query.SortBy?.ToLower() switch
+            {
+                "price" => query.SortOrder == "desc"
+                    ? ((IOrderedQueryable<Turf>)turfQuery).ThenByDescending(t => t.PricePerHour)
+                    : ((IOrderedQueryable<Turf>)turfQuery).ThenBy(t => t.PricePerHour),
 
-            "name" => query.SortOrder == "desc"
-                ? turfQuery.OrderByDescending(t => t.Name)
-                : turfQuery.OrderBy(t => t.Name),
+                "name" => query.SortOrder == "desc"
+                    ? ((IOrderedQueryable<Turf>)turfQuery).ThenByDescending(t => t.Name)
+                    : ((IOrderedQueryable<Turf>)turfQuery).ThenBy(t => t.Name),
 
-            _ => turfQuery.OrderBy(t => t.Id)
-        };
+                _ => ((IOrderedQueryable<Turf>)turfQuery).ThenBy(t => t.Id)
+            };
+        }
+        else
+        {
+            // Standard sorting when no preferred city is set
+            turfQuery = query.SortBy?.ToLower() switch
+            {
+                "price" => query.SortOrder == "desc"
+                    ? turfQuery.OrderByDescending(t => t.PricePerHour)
+                    : turfQuery.OrderBy(t => t.PricePerHour),
+
+                "name" => query.SortOrder == "desc"
+                    ? turfQuery.OrderByDescending(t => t.Name)
+                    : turfQuery.OrderBy(t => t.Name),
+
+                _ => turfQuery.OrderBy(t => t.Id)
+            };
+        }
 
         var totalCount = await turfQuery.CountAsync(cancellationToken);
 

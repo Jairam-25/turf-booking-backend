@@ -25,6 +25,13 @@ public class TurfController : ControllerBase
     public async Task<IActionResult> Get(
         [FromQuery] TurfQueryParameters query)
     {
+        // Extract the logged-in user's preferred city from their token claims
+        var userCity = User.FindFirst(System.Security.Claims.ClaimTypes.Locality)?.Value;
+        if (!string.IsNullOrEmpty(userCity))
+        {
+            query.PreferredCity = userCity;
+        }
+
         var result = await _turfService.GetAllTurfAsync(query);
 
         return Ok(ApiResponse<PagedResult<TurfResponseDto>>.SuccessResponse(result, "Turfs retrieved successfully"));
