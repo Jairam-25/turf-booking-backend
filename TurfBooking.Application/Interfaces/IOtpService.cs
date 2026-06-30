@@ -8,5 +8,7 @@ namespace Application.Interfaces
     {
         Task<Result<string>> SendOtpAsync(SendOtpRequestDto request, CancellationToken cancellationToken = default);
         Task<Result<LoginResponseDto>> VerifyOtpAsync(VerifyOtpRequestDto request, CancellationToken cancellationToken = default);
+    Task<Result<string>> SendRegistrationOtpAsync(SendOtpRequestDto request, CancellationToken cancellationToken = default);
+    Task<Result<bool>> VerifyRegistrationOtpAsync(VerifyOtpRequestDto request, CancellationToken cancellationToken = default);
     }
 }

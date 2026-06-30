@@ -14,5 +14,8 @@ namespace Application.DTOs
         public string Password { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
+        public string State { get; set; } = string.Empty;
+        public string District { get; set; } = string.Empty;
+        public string Pincode { get; set; } = string.Empty;
     }
 }

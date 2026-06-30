@@ -55,6 +55,23 @@ namespace TurfBooking.API.Controllers
             return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(result.Value, "Verification successful"));
         }
 
+        
+        [HttpPost("send-registration-otp")]
+        public async Task<IActionResult> SendRegistrationOtp(SendOtpRequestDto request)
+        {
+            var result = await _otpService.SendRegistrationOtpAsync(request);
+            if (!result.IsSuccess) return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Failed", null, 400));
+            return Ok(ApiResponse<string>.SuccessResponse(result.Value ?? "", "OTP sent"));
+        }
+
+        [HttpPost("verify-registration-otp")]
+        public async Task<IActionResult> VerifyRegistrationOtp(VerifyOtpRequestDto request)
+        {
+            var result = await _otpService.VerifyRegistrationOtpAsync(request);
+            if (!result.IsSuccess) return BadRequest(ApiResponse<object>.FailureResponse(result.Error ?? "Verification failed", null, 400));
+            return Ok(ApiResponse<bool>.SuccessResponse(result.Value, "Verified successfully"));
+        }
+
         [HttpPost("register")]
         [EnableRateLimiting("RegisterPolicy")]
         public async Task<IActionResult> Register(
@@ -213,6 +230,8 @@ namespace TurfBooking.API.Controllers
             user.PhoneNumber = request.PhoneNumber;
             user.Address = request.Address;
             user.State = request.State;
+            user.District = request.District;
+            user.Pincode = request.Pincode;
             user.MaritalStatus = request.MaritalStatus;
             user.PlayerType = request.PlayerType;
             user.PlayingLevel = request.PlayingLevel;
