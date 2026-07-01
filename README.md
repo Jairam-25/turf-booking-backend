@@ -1,4 +1,8 @@
-# Turf Booking System
+# Turf Booking System - Backend
+
+> .NET Core backend for TurfXpert, providing robust APIs for turf booking, user management, and real-time availability using CQRS and Redis.
+
+**Topics/Tags:** `dotnet-core`, `csharp`, `cqrs`, `mediatr`, `redis`, `turf-booking`, `api`, `backend`
 
 ## Overview
 
