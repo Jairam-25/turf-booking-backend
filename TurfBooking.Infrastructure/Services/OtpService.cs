@@ -29,6 +29,7 @@ namespace Infrastructure.Services
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
         private readonly ISmsService _smsService;
+        private readonly IFirebaseNotificationService _firebaseNotificationService;
         private readonly ILogger<OtpService> _logger;
         private readonly IBackgroundJobClient _backgroundJobClient;
 
@@ -43,6 +44,7 @@ namespace Infrastructure.Services
             ITokenService tokenService,
             IEmailService emailService,
             ISmsService smsService,
+            IFirebaseNotificationService firebaseNotificationService,
             ILogger<OtpService> logger,
             IBackgroundJobClient backgroundJobClient)
         {
@@ -52,6 +54,7 @@ namespace Infrastructure.Services
             _tokenService = tokenService;
             _emailService = emailService;
             _smsService = smsService;
+            _firebaseNotificationService = firebaseNotificationService;
             _logger = logger;
             _backgroundJobClient = backgroundJobClient;
         }
@@ -127,16 +130,29 @@ namespace Infrastructure.Services
             // 3. Store OTP with 5-minute expiration
             await StoreOtpCodeAsync(cacheKey, otpCode, cancellationToken);
 
-            // 4. Dispatch OTP ONLY to the user's registered email address
+            // 4. Dispatch OTP ONLY to the user's registered email address or Push Notification
             try
             {
-                _logger.LogInformation("Sending OTP Email to registered email {Email} for identifier {Identifier}", targetEmail, identifier);
-                _backgroundJobClient.Enqueue<IEmailService>(emailSvc => 
-                    emailSvc.SendOtpEmailAsync(targetEmail, otpCode));
+                if (!string.IsNullOrWhiteSpace(request.FcmToken))
+                {
+                    _logger.LogInformation("Sending OTP via Firebase Push Notification to mobile for {Identifier}", identifier);
+                    await _firebaseNotificationService.SendPushNotificationAsync(
+                        request.FcmToken,
+                        "Turf Booking OTP",
+                        $"Your login OTP is {otpCode}. Do not share this with anyone.",
+                        cancellationToken
+                    );
+                }
+                else
+                {
+                    _logger.LogInformation("Sending OTP Email to registered email {Email} for identifier {Identifier}", targetEmail, identifier);
+                    _backgroundJobClient.Enqueue<IEmailService>(emailSvc => 
+                        emailSvc.SendOtpEmailAsync(targetEmail, otpCode));
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send OTP email to {Email}", targetEmail);
+                _logger.LogError(ex, "Failed to send OTP to {Email}", targetEmail);
                 return Result<string>.Failure("Failed to send OTP. Please try again.");
             }
 
@@ -260,11 +276,23 @@ namespace Infrastructure.Services
 
             try
             {
-                _backgroundJobClient.Enqueue<IEmailService>(emailSvc => emailSvc.SendOtpEmailAsync(identifier, otpCode));
+                if (!string.IsNullOrWhiteSpace(request.FcmToken))
+                {
+                    await _firebaseNotificationService.SendPushNotificationAsync(
+                        request.FcmToken,
+                        "Turf Booking Registration",
+                        $"Your registration OTP is {otpCode}. Welcome to Turf Booking!",
+                        cancellationToken
+                    );
+                }
+                else
+                {
+                    _backgroundJobClient.Enqueue<IEmailService>(emailSvc => emailSvc.SendOtpEmailAsync(identifier, otpCode));
+                }
             }
             catch (Exception ex)
             {
-                return Result<string>.Failure("Failed to send OTP email.");
+                return Result<string>.Failure("Failed to send OTP.");
             }
 
             return Result<string>.Success("OTP sent successfully to email.");

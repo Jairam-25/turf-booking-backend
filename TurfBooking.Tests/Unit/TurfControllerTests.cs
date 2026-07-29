@@ -17,6 +17,15 @@ public class TurfControllerTests
     {
         _mockTurfService = new Mock<ITurfService>();
         _controller = new TurfController(_mockTurfService.Object);
+
+        var user = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(new System.Security.Claims.Claim[] {
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Locality, "TestCity")
+        }, "mock"));
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = user }
+        };
     }
 
     [Fact]

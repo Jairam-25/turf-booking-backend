@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<ISmsService, SmsService>();
         services.AddScoped<IOtpService, OtpService>();
         services.AddScoped<IPaymentService, PaymentService>();
+        services.AddSingleton<IFirebaseNotificationService, FirebaseNotificationService>();
 
         // Background service: generates daily slots for all turfs on startup + every 24 h
         services.AddHostedService<DailySlotGeneratorService>();
