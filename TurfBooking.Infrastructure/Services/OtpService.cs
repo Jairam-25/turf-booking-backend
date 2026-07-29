@@ -133,21 +133,27 @@ namespace Infrastructure.Services
             // 4. Dispatch OTP ONLY to the user's registered email address or Push Notification
             try
             {
+                bool pushSent = false;
                 if (!string.IsNullOrWhiteSpace(request.FcmToken))
                 {
                     _logger.LogInformation("Sending OTP via Firebase Push Notification to mobile for {Identifier}", identifier);
-                    await _firebaseNotificationService.SendPushNotificationAsync(
+                    pushSent = await _firebaseNotificationService.SendPushNotificationAsync(
                         request.FcmToken,
                         "Turf Booking OTP",
                         $"Your login OTP is {otpCode}. Do not share this with anyone.",
                         cancellationToken
                     );
                 }
-                else
+                
+                if (!pushSent)
                 {
                     _logger.LogInformation("Sending OTP Email to registered email {Email} for identifier {Identifier}", targetEmail, identifier);
                     _backgroundJobClient.Enqueue<IEmailService>(emailSvc => 
                         emailSvc.SendOtpEmailAsync(targetEmail, otpCode));
+                }
+                else
+                {
+                    return Result<string>.Success("PUSH_SENT");
                 }
             }
             catch (Exception ex)
@@ -276,18 +282,24 @@ namespace Infrastructure.Services
 
             try
             {
+                bool pushSent = false;
                 if (!string.IsNullOrWhiteSpace(request.FcmToken))
                 {
-                    await _firebaseNotificationService.SendPushNotificationAsync(
+                    pushSent = await _firebaseNotificationService.SendPushNotificationAsync(
                         request.FcmToken,
                         "Turf Booking Registration",
                         $"Your registration OTP is {otpCode}. Welcome to Turf Booking!",
                         cancellationToken
                     );
                 }
-                else
+                
+                if (!pushSent)
                 {
                     _backgroundJobClient.Enqueue<IEmailService>(emailSvc => emailSvc.SendOtpEmailAsync(identifier, otpCode));
+                }
+                else
+                {
+                    return Result<string>.Success("PUSH_SENT");
                 }
             }
             catch (Exception ex)

@@ -30,6 +30,10 @@ namespace Infrastructure.Services
                     {
                         credentialPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "firebase-service-account.json");
                     }
+                    if (!System.IO.File.Exists(credentialPath))
+                    {
+                        credentialPath = "/etc/secrets/firebase-service-account.json"; // Render secret files path
+                    }
                     if (System.IO.File.Exists(credentialPath))
                     {
                         FirebaseApp.Create(new AppOptions()
