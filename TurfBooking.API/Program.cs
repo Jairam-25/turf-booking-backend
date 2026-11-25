@@ -280,10 +280,14 @@ builder.Services.AddCors(options =>
         "AllowAngular",
         policy =>
         {
-            policy.SetIsOriginAllowed(origin => true)
-                              .AllowAnyHeader()
-                              .AllowAnyMethod()
-                              .AllowCredentials();
+            policy.WithOrigins(
+                "https://turfxpert.rv-s.in",
+                "https://turf-booking-frontend-app.vercel.app",
+                "http://localhost:4200"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
         });
 });
 
